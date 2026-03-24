@@ -474,7 +474,7 @@ function _binaSvgOlustur() {
       istekItem.className = 'strip-menu-item' + (isSelected ? ' selected' : '');
       istekItem.innerHTML = isSelected ? '🔶 İstek Seçili ✓' : '🔶 İstek Seç';
       if (!isSelected) {
-        istekItem.addEventListener('click', function(e) { e.stopPropagation(); setIstekOrtak(-1, 0); });
+        istekItem.addEventListener('click', function(e) { e.stopPropagation(); setIstekOrtak(-1, aIdx); });
       }
       menu.appendChild(istekItem);
       stripEl.appendChild(menu);
