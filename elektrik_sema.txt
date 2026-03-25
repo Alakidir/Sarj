@@ -256,6 +256,7 @@
     .gd-kontrol-panel .sifirla-btn:hover { background: #ccc; }
     #gd-canli-alan .gd-transform-wrapper { transform-origin: top left; transition: transform 0.2s ease; }
   </style>
+  <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 
 <body>
@@ -1623,56 +1624,93 @@ function buildYapiGucTablosu() {
     </table>
   </div>`;
 }
-function saveState() {
+function _elemToPng(el) {
+  return new Promise(function(resolve) {
+    if (!el || typeof html2canvas === 'undefined') { resolve(''); return; }
+    var rect = el.getBoundingClientRect();
+    if (!rect.width || !rect.height) { resolve(''); return; }
+    html2canvas(el, {
+      backgroundColor : '#ffffff',
+      scale           : 2,
+      useCORS         : true,
+      allowTaint      : true,
+      logging         : false,
+      width           : rect.width,
+      height          : rect.height,
+      windowWidth     : document.documentElement.scrollWidth,
+      scrollX         : 0,
+      scrollY         : 0,
+      x               : rect.left + window.scrollX,
+      y               : rect.top  + window.scrollY,
+    }).then(function(canvas) {
+      resolve(canvas.toDataURL('image/jpeg', 0.85));
+    }).catch(function() { resolve(''); });
+  });
+}
+
+function _htmlToPng(htmlStr) {
+  return new Promise(function(resolve) {
+    if (!htmlStr || typeof html2canvas === 'undefined') { resolve(''); return; }
+    var tmp = document.createElement('div');
+    tmp.style.cssText = 'position:fixed;left:-9999px;top:0;visibility:hidden;background:#ffffff';
+    tmp.innerHTML = htmlStr;
+    document.body.appendChild(tmp);
+    var el = tmp.firstElementChild || tmp;
+    setTimeout(function() {
+      html2canvas(el, {
+        backgroundColor : '#ffffff',
+        scale           : 2,
+        useCORS         : true,
+        allowTaint      : true,
+        logging         : false,
+      }).then(function(canvas) {
+        document.body.removeChild(tmp);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      }).catch(function() {
+        if (document.body.contains(tmp)) document.body.removeChild(tmp);
+        resolve('');
+      });
+    }, 80);
+  });
+}
+
+async function saveState() {
   try {
-    // ── Tekhat SVG — hit-layer'lar temizlenerek serialize edilir
+    // ── Tekhat PNG
+    var tekhatPng = '';
     var svgEl = document.getElementById('katman_1');
-    var svgString = '';
     if (svgEl) {
-      try {
-        // hit-layer rect'leri geçici olarak kaldır
-        var hitLayers = svgEl.querySelectorAll('.hit-layer');
-        var hitLayerParents = [];
-        hitLayers.forEach(function(el) {
-          hitLayerParents.push({ parent: el.parentNode, next: el.nextSibling, el: el });
-          el.parentNode.removeChild(el);
-        });
-        svgString = new XMLSerializer().serializeToString(svgEl);
-        // hit-layer'ları geri koy
-        hitLayerParents.forEach(function(item) {
-          if (item.next) {
-            item.parent.insertBefore(item.el, item.next);
-          } else {
-            item.parent.appendChild(item.el);
-          }
-        });
-      } catch(e) { console.warn('SVG serialize hatası:', e); }
+      // hit-layer'ları geçici kaldır
+      var hitLayers = svgEl.querySelectorAll('.hit-layer');
+      var hitLayerParents = [];
+      hitLayers.forEach(function(el) {
+        hitLayerParents.push({ parent: el.parentNode, next: el.nextSibling, el: el });
+        el.parentNode.removeChild(el);
+      });
+      tekhatPng = await _elemToPng(svgEl);
+      hitLayerParents.forEach(function(item) {
+        if (item.next) { item.parent.insertBefore(item.el, item.next); }
+        else { item.parent.appendChild(item.el); }
+      });
     }
 
-    // ── Gerilim düşümü tablolarının HTML snapshot'ı
-    var gdAlan = document.getElementById('gd-canli-alan');
-    var gdEnUzunHtml   = '';
-    var gdEnGucluHtml  = '';
-    if (gdAlan) {
-      // renderGD('en_uzun') ve renderGD('en_guclu') ayrı table elementleri üretir
-      // gd-canli-alan içindeki ilk ve ikinci table'ı alıyoruz
-      var gdTables = gdAlan.querySelectorAll('table');
-      if (gdTables[0]) gdEnUzunHtml  = gdTables[0].outerHTML;
-      if (gdTables[1]) gdEnGucluHtml = gdTables[1].outerHTML;
-    }
-
-        // ── Yükleme cetveli HTML snapshot'ı
+    // ── Yükleme cetveli PNG
+    var cetvelPng = '';
     var cetveliAlan = document.getElementById('cetveli-canli-alan');
-    var cetveliHtml = cetveliAlan ? cetveliAlan.innerHTML : '';
+    if (cetveliAlan) cetvelPng = await _elemToPng(cetveliAlan);
 
-    // ── Tesisat güç, kofre ölçüm, yapı güç tabloları (HTML builder fonksiyonlarından)
-    var tesisatGucHtml = buildTesisatGucTablosu();
-    var kofreOlcumHtml = buildKofreOlcumTablosu();
-    var yapiGucHtml    = buildYapiGucTablosu();
-    
-      var gucPanelHtml = '';
-    var gucPanel = document.getElementById('guc-bilgi-paneli');
-    if (gucPanel) gucPanelHtml = gucPanel.outerHTML;
+    // ── Tesisat güç, kofre ölçüm, yapı güç tabloları PNG
+    var tesisatGucPng  = await _htmlToPng(buildTesisatGucTablosu());
+    var kofreOlcumPng  = await _htmlToPng(buildKofreOlcumTablosu());
+    var yapiGucPng     = await _htmlToPng(buildYapiGucTablosu());
+
+    // ── Gerilim düşümü tabloları PNG
+    var gdEnUzunPng  = '';
+    var gdEnGucluPng = '';
+    var gdEnUzunEl  = document.getElementById('gd-tablo-enuzun');
+    var gdEnGucluEl = document.getElementById('gd-tablo-enguclu');
+    if (gdEnUzunEl)  gdEnUzunPng  = await _elemToPng(gdEnUzunEl);
+    if (gdEnGucluEl) gdEnGucluPng = await _elemToPng(gdEnGucluEl);
 
     localStorage.setItem(LS_SEMA_KEY, JSON.stringify({
       // Metin verileri (mevcut)
@@ -1720,15 +1758,14 @@ function saveState() {
         eskiTalepManuel:  qs('guc-eski-talep')  && qs('guc-eski-talep').dataset.manuelDegistirildi  ? '1' : '',
         ilaveTalepManuel: qs('guc-ilave-talep') && qs('guc-ilave-talep').dataset.manuelDegistirildi ? '1' : ''
       },
-      // ── Rapor için görsel snapshot'lar
-      tekhatSvg:      svgString,       // Tekhat şeması (hit-layer'sız)
-      gdEnUzunHtml:   gdEnUzunHtml,    // GD hesabı en uzun tablo HTML
-      gdEnGucluHtml:  gdEnGucluHtml,   // GD hesabı en güçlü tablo HTML
-           cetveliHtml:    cetveliHtml,
-      tesisatGucHtml: tesisatGucHtml,
-      kofreOlcumHtml: kofreOlcumHtml,
-      yapiGucHtml:    yapiGucHtml,
-      gucPanelHtml:   gucPanelHtml,
+      // ── Rapor için görsel PNG'ler
+      tekhatPng:      tekhatPng,
+      cetvelPng:      cetvelPng,
+      tesisatGucPng:  tesisatGucPng,
+      kofreOlcumPng:  kofreOlcumPng,
+      yapiGucPng:     yapiGucPng,
+      gdEnUzunPng:    gdEnUzunPng,
+      gdEnGucluPng:   gdEnGucluPng,
       linyeler:       _linyeListesiOlustur()
     }));
   } catch(e) { console.warn('[saveState] error:', e); }
@@ -2434,14 +2471,14 @@ window.kapatModal=function(){
   _eskiKapat2();
   setTimeout(gdTabloGuncelle,50);
   // GD tabloları render edildikten sonra saveState (gdEnUzun/gdEnGuclu dahil)
-  setTimeout(function(){ if(typeof saveState==='function') saveState(); }, 120);
+  setTimeout(function(){ if(typeof saveState==='function') saveState().catch(function(){}); }, 120);
 };
 
 document.addEventListener('DOMContentLoaded',function(){
   ['guc-eski-kurulu','guc-eski-talep','guc-ilave-kurulu','guc-ilave-talep','guc-imax','guc-yapi-eski-kg-puant'].forEach(function(id){
     var el=qs(id);if(el)el.addEventListener('input',function(){
       setTimeout(gdTabloGuncelle,100);
-      setTimeout(function(){ if(typeof saveState==='function') saveState(); }, 200);
+      setTimeout(function(){ if(typeof saveState==='function') saveState().catch(function(){}); }, 200);
     });
   });
   setTimeout(gdTabloGuncelle,200);

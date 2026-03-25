@@ -69,6 +69,7 @@
   .save-indicator { position: fixed; top: 16px; right: 16px; background: #27ae60; color: #fff; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 20px; opacity: 0; transition: opacity 0.4s; z-index: 9999; pointer-events: none; }
   .save-indicator.show { opacity: 1; }
 </style>
+<script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
 
@@ -164,21 +165,43 @@
   // ══════════════════════════════════════
   // localStorage — KAYDET / YÜKLE
   // ══════════════════════════════════════
-   function saveToStorage() {
+  function _elementePng(el) {
+    return new Promise(function(resolve) {
+      if (!el || typeof html2canvas === 'undefined') { resolve(''); return; }
+      var rect = el.getBoundingClientRect();
+      if (!rect.width || !rect.height) { resolve(''); return; }
+      html2canvas(el, {
+        backgroundColor : '#ffffff',
+        scale           : 2,
+        useCORS         : true,
+        allowTaint      : true,
+        logging         : false,
+        width           : rect.width,
+        height          : rect.height,
+        windowWidth     : document.documentElement.scrollWidth,
+        scrollX         : 0,
+        scrollY         : 0,
+        x               : rect.left + window.scrollX,
+        y               : rect.top  + window.scrollY,
+      }).then(function(canvas) {
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      }).catch(function() { resolve(''); });
+    });
+  }
+
+  async function saveToStorage() {
   try {
-    var kolonSvgEl = document.querySelector('#svgContainer svg');
-    var kolonSvg = '';
-    if (kolonSvgEl) { try { kolonSvg = new XMLSerializer().serializeToString(kolonSvgEl); } catch(e) {} }
+    var kolonPng = '';
+    var kolonEl = document.querySelector('#svgContainer svg');
+    if (kolonEl) kolonPng = await _elementePng(kolonEl);
 
-    var panoSvgEl = document.querySelector('#panoSvgContainer svg');
-    var panoSvg = '';
-    if (panoSvgEl) { try { panoSvg = new XMLSerializer().serializeToString(panoSvgEl); } catch(e) {} }
+    var panoPng = '';
+    var panoEl = document.querySelector('#panoSvgContainer svg');
+    if (panoEl) panoPng = await _elementePng(panoEl);
 
-    // ── Bina görseli: writing-mode sorunu için özel snapshot ──
-    var binaHtml = buildBinaSnapshot();
-
-        // ── Bina görseli SVG olarak da kaydet (PDF için daha temiz render) ──
-    var binaSvg = _binaSvgOlustur();
+    var binaPng = '';
+    var binaEl = document.getElementById('buildingOuter');
+    if (binaEl) binaPng = await _elementePng(binaEl);
 
     var data = {
       totalTesisat  : state.totalTesisat,
@@ -192,10 +215,9 @@
       adpKatAdi     : adpKatAdi,
       adpKatValue   : adpKatValue,
       adpTipiValue  : adpTipiValue,
-      kolonSvg      : kolonSvg,
-      panoSvg       : panoSvg,
-      binaHtml      : binaHtml,
-      binaSvg       : binaSvg
+      kolonPng      : kolonPng,
+      panoPng       : panoPng,
+      binaPng       : binaPng
     };
     localStorage.setItem(LS_KEY, JSON.stringify(data));
     showSaveIndicator();
@@ -409,7 +431,7 @@ function _binaSvgOlustur() {
   var saveTimer = null;
   function scheduleSave() {
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(saveToStorage, 400);
+    saveTimer = setTimeout(function() { saveToStorage().catch(function(e) { console.warn('[saveToStorage] error:', e); }); }, 400);
   }
 
   // ══════════════════════════════════════
