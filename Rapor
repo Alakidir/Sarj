@@ -329,13 +329,11 @@ function htmlToPng(htmlStr, renderW, dpiMul) {
         useCORS         : true,
         allowTaint      : true,
         logging         : false,
-        windowWidth     : renderW,
         width           : realW,
         height          : realH,
+        windowWidth     : renderW,
         scrollX         : 0,
-        scrollY         : 0,
-        x               : 0,
-        y               : 0,
+        scrollY         : -window.scrollY,
       }).then(function(canvas) {
         sandbox.innerHTML = '';
         resolve({
@@ -378,8 +376,8 @@ btnKontrol.addEventListener('click', function() {
   const yapi = loadLS(KEY_YAPI);
   const hatalar = [];
 
-  if (!sema) hatalar.push('proje_sema_v1 bulunamadı — Elektrik Şeması sayfasını ziyaret edin');
-  if (!yapi) hatalar.push('proje_yapi_v1 bulunamadı — Kolon Hesaplama sayfasını ziyaret edin');
+  if (!sema || !sema.guc) hatalar.push('proje_sema_v1 bulunamadı veya guc eksik — Elektrik Şeması sayfasını ziyaret edin');
+  if (!yapi || !yapi.floors || !yapi.floors.length) hatalar.push('proje_yapi_v1 bulunamadı veya floors eksik — Kolon Hesaplama sayfasını ziyaret edin');
 
   if (hatalar.length) {
     gosterDurum('❌ ' + hatalar.join(' | '), 'hata');
@@ -387,22 +385,12 @@ btnKontrol.addEventListener('click', function() {
     return;
   }
 
-  // State alanlarının temel varlığını kontrol et
-  const uyarilar = [];
-  if (!yapi.floors || yapi.floors.length === 0) uyarilar.push('Bina katları');
-  if (!sema.guc) uyarilar.push('Elektrik şeması güç verileri');
-
   kontrolGecti = true;
   btnKontrol.classList.add('ok');
   btnKontrol.textContent = '✅ Kontrol Tamam';
   btnOnizle.disabled = false;
   btnIndir.disabled  = false;
-
-  if (uyarilar.length) {
-    gosterDurum('⚠️ Şu veriler eksik/boş olabilir: ' + uyarilar.join(', '), 'info');
-  } else {
-    gosterDurum('✅ Tüm veriler mevcut. PDF oluşturulabilir.', 'tamam');
-  }
+  gosterDurum('✅ State verileri mevcut. PDF oluşturulabilir.', 'tamam');
 });
 
 // ═══════════════════════════════════════════════════════
