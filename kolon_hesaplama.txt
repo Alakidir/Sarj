@@ -166,20 +166,6 @@
   // ══════════════════════════════════════
    function saveToStorage() {
   try {
-    var kolonSvgEl = document.querySelector('#svgContainer svg');
-    var kolonSvg = '';
-    if (kolonSvgEl) { try { kolonSvg = new XMLSerializer().serializeToString(kolonSvgEl); } catch(e) {} }
-
-    var panoSvgEl = document.querySelector('#panoSvgContainer svg');
-    var panoSvg = '';
-    if (panoSvgEl) { try { panoSvg = new XMLSerializer().serializeToString(panoSvgEl); } catch(e) {} }
-
-    // ── Bina görseli: writing-mode sorunu için özel snapshot ──
-    var binaHtml = buildBinaSnapshot();
-
-        // ── Bina görseli SVG olarak da kaydet (PDF için daha temiz render) ──
-    var binaSvg = _binaSvgOlustur();
-
     var data = {
       totalTesisat  : state.totalTesisat,
       asansor       : state.asansor,
@@ -191,11 +177,7 @@
       istekUnit     : state.istekUnit,
       adpKatAdi     : adpKatAdi,
       adpKatValue   : adpKatValue,
-      adpTipiValue  : adpTipiValue,
-      kolonSvg      : kolonSvg,
-      panoSvg       : panoSvg,
-      binaHtml      : binaHtml,
-      binaSvg       : binaSvg
+      adpTipiValue  : adpTipiValue
     };
     localStorage.setItem(LS_KEY, JSON.stringify(data));
     showSaveIndicator();
