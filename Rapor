@@ -113,74 +113,64 @@ const DOSYA_ADI  = 'Elektrik_Proje_Raporu.pdf';
 const KEY_SEMA   = 'proje_sema_v1';
 const KEY_YAPI   = 'proje_yapi_v1';
 const LS_AYAR    = 'rapor_ayarlar_v2';
+const PNG_CAPTURE_TIMEOUT_MS  = 20000; // Diğer sekmelerin PNG yakalaması için maks bekleme süresi (ms)
+const PNG_CAPTURE_POLL_MS     = 500;   // Kontrol aralığı (ms)
 
 // ── Her öğenin varsayılan ayarları ──────────────────────
 // kaynak: 'sema' veya 'yapi' (hangi localStorage key)
-// alan  : o key içindeki hangi alan (SVG string ya da HTML string)
-// tip   : 'svg' → SVG string | 'html' → HTML string
-// renderW: html2canvas için sandbox genişliği (px)
-// pxW/pxH: SVG için canvas boyutu
+// alan  : o key içindeki hangi alan (PNG base64)
+// tip   : 'png' → direkt PNG base64
 const VARSAYILAN_OGELERI = [
   // ── Kolon Hesaplama sekmesinden ──
     {
     id:'bina', baslik:'🏢 Bina Görseli',
-    kaynak:'yapi', alan:'binaSvg', tip:'svg',
-    pxW:600, pxH:500,
+    kaynak:'yapi', alan:'binaPng', tip:'png',
     x:20,  y:40,   scale:0.55, dpi:3, aktif:true
   },
   {
     id:'kolon', baslik:'🏛️ Kolon Şeması',
-    kaynak:'yapi', alan:'kolonSvg', tip:'svg',
-    pxW:1400, pxH:900,
+    kaynak:'yapi', alan:'kolonPng', tip:'png',
     x:20,  y:340,  scale:0.45, dpi:3, aktif:true
   },
   {
     id:'pano', baslik:'🗄️ Pano Görseli',
-    kaynak:'yapi', alan:'panoSvg', tip:'svg',
-    pxW:1100, pxH:700,
+    kaynak:'yapi', alan:'panoPng', tip:'png',
     x:20,  y:700,  scale:0.45, dpi:3, aktif:true
   },
   // ── Elektrik Şeması sekmesinden ──
   {
     id:'tekhat', baslik:'🔌 Tekhat Şeması',
-    kaynak:'sema', alan:'svgString', tip:'svg',
-    pxW:1800, pxH:560,
+    kaynak:'sema', alan:'tekhatPng', tip:'png',
     x:20,  y:900,  scale:0.45, dpi:3, aktif:true
   },
   {
     id:'cetvel', baslik:'📋 Yükleme Cetveli',
-    kaynak:'sema', alan:'cetveliHtml', tip:'html',
-    renderW: 1200,
+    kaynak:'sema', alan:'cetvelPng', tip:'png',
     x:20,  y:1050, scale:0.60, dpi:2, aktif:true
   },
   {
     id:'tesisatguc', baslik:'⚡ Tesisat Güç Bilgileri',
-    kaynak:'sema', alan:'tesisatGucHtml', tip:'html',
-    renderW: 900,
+    kaynak:'sema', alan:'tesisatGucPng', tip:'png',
     x:20,  y:1280, scale:0.60, dpi:2, aktif:true
   },
   {
     id:'kofreolem', baslik:'🔧 Kofre Ölçüm Değerleri',
-    kaynak:'sema', alan:'kofreOlcumHtml', tip:'html',
-    renderW: 700,
+    kaynak:'sema', alan:'kofreOlcumPng', tip:'png',
     x:20,  y:1420, scale:0.60, dpi:2, aktif:true
   },
   {
     id:'yapiguc', baslik:'🏗️ Yapı Güç Bilgileri',
-    kaynak:'sema', alan:'yapiGucHtml', tip:'html',
-    renderW: 1200,
+    kaynak:'sema', alan:'yapiGucPng', tip:'png',
     x:20,  y:1580, scale:0.60, dpi:2, aktif:true
   },
   {
     id:'gduzun', baslik:'📉 GD Hesabı (En Uzun)',
-    kaynak:'sema', alan:'gdEnUzunHtml', tip:'html',
-    renderW: 700,
+    kaynak:'sema', alan:'gdEnUzunPng', tip:'png',
     x:20,  y:1760, scale:0.65, dpi:2, aktif:true
   },
   {
     id:'gdguclu', baslik:'📉 GD Hesabı (En Güçlü)',
-    kaynak:'sema', alan:'gdEnGucluHtml', tip:'html',
-    renderW: 700,
+    kaynak:'sema', alan:'gdEnGucluPng', tip:'png',
     x:380, y:1760, scale:0.65, dpi:2, aktif:true
   },
 ];
@@ -409,59 +399,106 @@ function htmlToPng(htmlStr, renderW, dpiMul) {
 }
 
 // ═══════════════════════════════════════════════════════
-// PDF'E PNG EMBED
+// PDF'E GÖRSEL EMBED (PNG veya JPEG)
 // pdfH    : sayfa yüksekliği (pt) — pdf-lib sol-alt origin için
 // imgX, imgY_top: sol-üst köşe koordinatı (x soldan, y yukarıdan)
 // imgW, imgH    : PDF üzerindeki boyut (pt)
 // ═══════════════════════════════════════════════════════
 async function embedPng(pdfDoc, page, pdfH, dataUrl, imgX, imgY_top, imgW, imgH) {
-  const resp     = await fetch(dataUrl);
-  const arrBuf   = await resp.arrayBuffer();
-  const pngImage = await pdfDoc.embedPng(arrBuf);
+  const resp   = await fetch(dataUrl);
+  const arrBuf = await resp.arrayBuffer();
+  const isJpeg = dataUrl.startsWith('data:image/jpeg');
+  const image  = isJpeg ? await pdfDoc.embedJpg(arrBuf) : await pdfDoc.embedPng(arrBuf);
   // pdf-lib: y = sol-altta origin → dönüştür
   const pdfY = pdfH - imgY_top - imgH;
-  page.drawImage(pngImage, { x: imgX, y: pdfY, width: imgW, height: imgH });
+  page.drawImage(image, { x: imgX, y: pdfY, width: imgW, height: imgH });
+}
+
+// ═══════════════════════════════════════════════════════
+// PNG boyutunu Image nesnesinden al
+// ═══════════════════════════════════════════════════════
+function pngBoyutAl(dataUrl) {
+  return new Promise(function(resolve) {
+    var img = new Image();
+    img.onload  = function() { resolve({ w: img.naturalWidth, h: img.naturalHeight }); };
+    img.onerror = function() { resolve({ w: 800, h: 600 }); };
+    img.src = dataUrl;
+  });
 }
 
 // ═══════════════════════════════════════════════════════
 // KONTROL ET
 // ═══════════════════════════════════════════════════════
-btnKontrol.addEventListener('click', function() {
+btnKontrol.addEventListener('click', async function() {
   kontrolGecti = false;
   pdfBlob      = null;
+  btnKontrol.disabled    = true;
+  btnKontrol.textContent = '⏳ Görseller Hazırlanıyor...';
 
-  const sema = loadLS(KEY_SEMA);
-  const yapi = loadLS(KEY_YAPI);
-  const hatalar  = [];
-  const uyarilar = [];
+  try {
+    // Diğer sekmelere PNG yakalama talebi gönder (localStorage storage event ile)
+    const talepZamani = Date.now();
+    localStorage.setItem('sarj_gorsel_talep_v1', String(talepZamani));
+    gosterDurum('🔄 Görseller hazırlanıyor... (Kolon ve Şema sekmelerinin açık olduğundan emin olun)', 'info');
+    setProgress(5);
 
-  if (!sema) hatalar.push('proje_sema_v1 bulunamadı — Elektrik Şeması sekmesini açın');
-  if (!yapi) hatalar.push('proje_yapi_v1 bulunamadı — Kolon Hesaplama sekmesini açın');
+    // Her iki sekmenin yanıt bayraklarını bekle (maks PNG_CAPTURE_TIMEOUT_MS)
+    await new Promise(function(resolve) {
+      let elapsed = 0;
+      function kontrol() {
+        elapsed += PNG_CAPTURE_POLL_MS;
+        const yapiTs = parseInt(localStorage.getItem('sarj_gorsel_hazir_yapi_v1') || '0');
+        const semaTs = parseInt(localStorage.getItem('sarj_gorsel_hazir_sema_v1') || '0');
+        const yapiHazir = yapiTs >= talepZamani;
+        const semaHazir = semaTs >= talepZamani;
+        const hazirSayisi = (yapiHazir ? 1 : 0) + (semaHazir ? 1 : 0);
+        setProgress(5 + Math.min(85, (elapsed / PNG_CAPTURE_TIMEOUT_MS) * 85));
+        if (yapiHazir && semaHazir) { resolve(); return; }
+        if (elapsed >= PNG_CAPTURE_TIMEOUT_MS) { resolve(); return; }
+        gosterDurum('🔄 Görseller hazırlanıyor... (' + hazirSayisi + '/2 sekme tamamlandı)', 'info');
+        setTimeout(kontrol, PNG_CAPTURE_POLL_MS);
+      }
+      setTimeout(kontrol, PNG_CAPTURE_POLL_MS);
+    });
 
-  if (hatalar.length) {
-    gosterDurum('❌ ' + hatalar.join(' | '), 'hata');
-    btnOnizle.disabled = true; btnIndir.disabled = true;
-    return;
-  }
+    setProgress(100);
 
-  // Hangi alanlar var, hangileri eksik?
-  VARSAYILAN_OGELERI.forEach(function(og) {
-    const kaynak = og.kaynak === 'sema' ? sema : yapi;
-    if (!kaynak || !kaynak[og.alan]) {
-      uyarilar.push(og.baslik);
+    const sema = loadLS(KEY_SEMA);
+    const yapi = loadLS(KEY_YAPI);
+    const hatalar  = [];
+    const uyarilar = [];
+
+    if (!sema) hatalar.push('proje_sema_v1 bulunamadı — Elektrik Şeması sekmesini açın');
+    if (!yapi) hatalar.push('proje_yapi_v1 bulunamadı — Kolon Hesaplama sekmesini açın');
+
+    if (hatalar.length) {
+      gosterDurum('❌ ' + hatalar.join(' | '), 'hata');
+      btnOnizle.disabled = true; btnIndir.disabled = true;
+      return;
     }
-  });
 
-  kontrolGecti = true;
-  btnKontrol.classList.add('ok');
-  btnKontrol.textContent = '✅ Kontrol Tamam';
-  btnOnizle.disabled = false;
-  btnIndir.disabled  = false;
+    // Hangi alanlar var, hangileri eksik?
+    VARSAYILAN_OGELERI.forEach(function(og) {
+      const kaynak = og.kaynak === 'sema' ? sema : yapi;
+      if (!kaynak || !kaynak[og.alan]) {
+        uyarilar.push(og.baslik);
+      }
+    });
 
-  if (uyarilar.length) {
-    gosterDurum('⚠️ Şu öğeler eksik/boş (PDF\'de atlanacak): ' + uyarilar.join(', '), 'info');
-  } else {
-    gosterDurum('✅ Tüm veriler mevcut. PDF oluşturulabilir.', 'tamam');
+    kontrolGecti = true;
+    btnKontrol.classList.add('ok');
+    btnKontrol.textContent = '✅ Kontrol Tamam';
+    btnOnizle.disabled = false;
+    btnIndir.disabled  = false;
+
+    if (uyarilar.length) {
+      gosterDurum('⚠️ Şu öğeler eksik/boş (PDF\'de atlanacak): ' + uyarilar.join(', '), 'info');
+    } else {
+      gosterDurum('✅ Tüm veriler mevcut. PDF oluşturulabilir.', 'tamam');
+    }
+  } finally {
+    btnKontrol.disabled = false;
+    if (!kontrolGecti) btnKontrol.textContent = '✅ Kontrol Et';
   }
 });
 
@@ -515,24 +552,31 @@ async function pdfOlustur() {
     gosterDurum('🖼️ [' + (i+1) + '/' + toplam + '] ' + og.baslik + ' işleniyor...', 'info');
 
     try {
-      let result;
+      let finalW, finalH, dataUrl;
 
-      if (og.tip === 'svg') {
-        // SVG → PNG (dpiMul canvas kalite çarpanı)
-        result = await svgToPng(veri, og.pxW, og.pxH, dpi);
+      if (og.tip === 'png') {
+        // Direkt PNG base64 — boyutu Image nesnesinden al
+        dataUrl = veri;
+        var boyut = await pngBoyutAl(dataUrl);
+        // html2canvas scale:2 ile çekildiğinden naturalWidth/H 2x büyük
+        // scale parametresi PDF üzerindeki ölçeği belirler
+        finalW = (boyut.w / 2) * scale;
+        finalH = (boyut.h / 2) * scale;
+      } else if (og.tip === 'svg') {
+        // SVG → PNG (eski veriyle uyumluluk için bırakıldı)
+        var result = await svgToPng(veri, og.pxW, og.pxH, dpi);
+        dataUrl = result.dataUrl;
+        finalW = (result.w / result.dpiMul) * scale;
+        finalH = (result.h / result.dpiMul) * scale;
       } else {
-        // HTML → PNG (html2canvas dpi = scale parametresi)
-        result = await htmlToPng(veri, og.renderW, dpi);
+        // HTML → PNG (eski veriyle uyumluluk için bırakıldı)
+        var result = await htmlToPng(veri, og.renderW, dpi);
+        dataUrl = result.dataUrl;
+        finalW = (result.w / result.dpiMul) * scale;
+        finalH = (result.h / result.dpiMul) * scale;
       }
 
-      // Canvas boyutu dpiMul ile büyütülmüş olduğundan
-      // asıl boyutu geri hesapla, sonra scale uygula
-      const naturalW = result.w / result.dpiMul;
-      const naturalH = result.h / result.dpiMul;
-      const finalW   = naturalW * scale;
-      const finalH   = naturalH * scale;
-
-      await embedPng(pdfDoc, page, PH, result.dataUrl, posX, posY, finalW, finalH);
+      await embedPng(pdfDoc, page, PH, dataUrl, posX, posY, finalW, finalH);
 
       console.log('✅', og.id,
         '→ x:', posX.toFixed(0), 'y:', posY.toFixed(0),

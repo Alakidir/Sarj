@@ -69,6 +69,7 @@
   .save-indicator { position: fixed; top: 16px; right: 16px; background: #27ae60; color: #fff; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 20px; opacity: 0; transition: opacity 0.4s; z-index: 9999; pointer-events: none; }
   .save-indicator.show { opacity: 1; }
 </style>
+<script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
 
@@ -164,43 +165,80 @@
   // ══════════════════════════════════════
   // localStorage — KAYDET / YÜKLE
   // ══════════════════════════════════════
-   function saveToStorage() {
-  try {
-    var kolonSvgEl = document.querySelector('#svgContainer svg');
-    var kolonSvg = '';
-    if (kolonSvgEl) { try { kolonSvg = new XMLSerializer().serializeToString(kolonSvgEl); } catch(e) {} }
+  function _elementePng(el) {
+    return new Promise(function(resolve) {
+      if (!el || typeof html2canvas === 'undefined') { resolve(''); return; }
+      var rect = el.getBoundingClientRect();
+      if (!rect.width || !rect.height) { resolve(''); return; }
+      html2canvas(el, {
+        backgroundColor : '#ffffff',
+        scale           : 2,
+        useCORS         : true,
+        allowTaint      : true,
+        logging         : false,
+        width           : rect.width,
+        height          : rect.height,
+        windowWidth     : document.documentElement.scrollWidth,
+        scrollX         : 0,
+        scrollY         : 0,
+        x               : rect.left + window.scrollX,
+        y               : rect.top  + window.scrollY,
+      }).then(function(canvas) {
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      }).catch(function() { resolve(''); });
+    });
+  }
 
-    var panoSvgEl = document.querySelector('#panoSvgContainer svg');
-    var panoSvg = '';
-    if (panoSvgEl) { try { panoSvg = new XMLSerializer().serializeToString(panoSvgEl); } catch(e) {} }
+  // Hafif kayıt — sadece state verisi, mevcut PNG'leri korur
+  function saveToStorage() {
+    try {
+      var existing = {};
+      try { var raw = localStorage.getItem(LS_KEY); if (raw) existing = JSON.parse(raw); } catch(e) {}
+      var data = {
+        totalTesisat  : state.totalTesisat,
+        asansor       : state.asansor,
+        ortakAlan     : state.ortakAlan,
+        toplamBagimsiz: state.toplamBagimsiz,
+        katSayisi     : state.katSayisi,
+        floors        : JSON.parse(JSON.stringify(state.floors)),
+        istekFloor    : state.istekFloor,
+        istekUnit     : state.istekUnit,
+        adpKatAdi     : adpKatAdi,
+        adpKatValue   : adpKatValue,
+        adpTipiValue  : adpTipiValue,
+        kolonPng      : existing.kolonPng || '',
+        panoPng       : existing.panoPng  || '',
+        binaPng       : existing.binaPng  || ''
+      };
+      localStorage.setItem(LS_KEY, JSON.stringify(data));
+      showSaveIndicator();
+    } catch (e) { console.warn('[saveToStorage] error:', e); }
+  }
 
-    // ── Bina görseli: writing-mode sorunu için özel snapshot ──
-    var binaHtml = buildBinaSnapshot();
+  // Ağır kayıt — DOM elementlerini html2canvas ile PNG olarak yakala
+  // Sadece Rapor'un "Kontrol Et" tetiklemesiyle çağrılır
+  async function savePngToStorage() {
+    try {
+      var kolonPng = '';
+      var kolonEl = document.querySelector('#svgContainer svg');
+      if (kolonEl) kolonPng = await _elementePng(kolonEl);
 
-        // ── Bina görseli SVG olarak da kaydet (PDF için daha temiz render) ──
-    var binaSvg = _binaSvgOlustur();
+      var panoPng = '';
+      var panoEl = document.querySelector('#panoSvgContainer svg');
+      if (panoEl) panoPng = await _elementePng(panoEl);
 
-    var data = {
-      totalTesisat  : state.totalTesisat,
-      asansor       : state.asansor,
-      ortakAlan     : state.ortakAlan,
-      toplamBagimsiz: state.toplamBagimsiz,
-      katSayisi     : state.katSayisi,
-      floors        : JSON.parse(JSON.stringify(state.floors)),
-      istekFloor    : state.istekFloor,
-      istekUnit     : state.istekUnit,
-      adpKatAdi     : adpKatAdi,
-      adpKatValue   : adpKatValue,
-      adpTipiValue  : adpTipiValue,
-      kolonSvg      : kolonSvg,
-      panoSvg       : panoSvg,
-      binaHtml      : binaHtml,
-      binaSvg       : binaSvg
-    };
-    localStorage.setItem(LS_KEY, JSON.stringify(data));
-    showSaveIndicator();
-  } catch (e) { console.warn('[saveToStorage] error:', e); }
-}
+      var binaPng = '';
+      var binaEl = document.getElementById('buildingOuter');
+      if (binaEl) binaPng = await _elementePng(binaEl);
+
+      var existing = {};
+      try { var raw = localStorage.getItem(LS_KEY); if (raw) existing = JSON.parse(raw); } catch(e) {}
+      existing.kolonPng = kolonPng;
+      existing.panoPng  = panoPng;
+      existing.binaPng  = binaPng;
+      localStorage.setItem(LS_KEY, JSON.stringify(existing));
+    } catch(e) { console.warn('[savePngToStorage] error:', e); }
+  }
 
 // ── Bina görselini writing-mode KULLANMADAN üret (html2canvas uyumlu) ──
 function buildBinaSnapshot() {
@@ -1400,6 +1438,15 @@ function _binaSvgOlustur() {
     buildAdpSelect();
     renderBuilding();
   }
+
+  // ── Rapor "Kontrol Et" butonu tetiklemesiyle PNG yakalama ──
+  window.addEventListener('storage', function(e) {
+    if (e.key === 'sarj_gorsel_talep_v1') {
+      savePngToStorage().then(function() {
+        localStorage.setItem('sarj_gorsel_hazir_yapi_v1', String(Date.now()));
+      }).catch(function(err) { console.warn('[savePngToStorage]', err); });
+    }
+  });
 
 })();
 </script>
