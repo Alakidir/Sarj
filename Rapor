@@ -115,74 +115,19 @@ const KEY_YAPI   = 'proje_yapi_v1';
 const LS_AYAR    = 'rapor_ayarlar_v2';
 
 // ── Her öğenin varsayılan ayarları ──────────────────────
-// kaynak: 'sema' veya 'yapi' (hangi localStorage key)
-// alan  : o key içindeki hangi alan (SVG string ya da HTML string)
-// tip   : 'svg' → SVG string | 'html' → HTML string
-// renderW: html2canvas için sandbox genişliği (px)
-// pxW/pxH: SVG için canvas boyutu
+// tip   : 'svg-fn' → generator fonksiyon SVG üretir | 'html-fn' → generator fonksiyon HTML üretir
+// renderW: html-fn için sandbox genişliği (px)
 const VARSAYILAN_OGELERI = [
-  // ── Kolon Hesaplama sekmesinden ──
-    {
-    id:'bina', baslik:'🏢 Bina Görseli',
-    kaynak:'yapi', alan:'binaSvg', tip:'svg',
-    pxW:600, pxH:500,
-    x:20,  y:40,   scale:0.55, dpi:3, aktif:true
-  },
-  {
-    id:'kolon', baslik:'🏛️ Kolon Şeması',
-    kaynak:'yapi', alan:'kolonSvg', tip:'svg',
-    pxW:1400, pxH:900,
-    x:20,  y:340,  scale:0.45, dpi:3, aktif:true
-  },
-  {
-    id:'pano', baslik:'🗄️ Pano Görseli',
-    kaynak:'yapi', alan:'panoSvg', tip:'svg',
-    pxW:1100, pxH:700,
-    x:20,  y:700,  scale:0.45, dpi:3, aktif:true
-  },
-  // ── Elektrik Şeması sekmesinden ──
-  {
-    id:'tekhat', baslik:'🔌 Tekhat Şeması',
-    kaynak:'sema', alan:'svgString', tip:'svg',
-    pxW:1800, pxH:560,
-    x:20,  y:900,  scale:0.45, dpi:3, aktif:true
-  },
-  {
-    id:'cetvel', baslik:'📋 Yükleme Cetveli',
-    kaynak:'sema', alan:'cetveliHtml', tip:'html',
-    renderW: 1200,
-    x:20,  y:1050, scale:0.60, dpi:2, aktif:true
-  },
-  {
-    id:'tesisatguc', baslik:'⚡ Tesisat Güç Bilgileri',
-    kaynak:'sema', alan:'tesisatGucHtml', tip:'html',
-    renderW: 900,
-    x:20,  y:1280, scale:0.60, dpi:2, aktif:true
-  },
-  {
-    id:'kofreolem', baslik:'🔧 Kofre Ölçüm Değerleri',
-    kaynak:'sema', alan:'kofreOlcumHtml', tip:'html',
-    renderW: 700,
-    x:20,  y:1420, scale:0.60, dpi:2, aktif:true
-  },
-  {
-    id:'yapiguc', baslik:'🏗️ Yapı Güç Bilgileri',
-    kaynak:'sema', alan:'yapiGucHtml', tip:'html',
-    renderW: 1200,
-    x:20,  y:1580, scale:0.60, dpi:2, aktif:true
-  },
-  {
-    id:'gduzun', baslik:'📉 GD Hesabı (En Uzun)',
-    kaynak:'sema', alan:'gdEnUzunHtml', tip:'html',
-    renderW: 700,
-    x:20,  y:1760, scale:0.65, dpi:2, aktif:true
-  },
-  {
-    id:'gdguclu', baslik:'📉 GD Hesabı (En Güçlü)',
-    kaynak:'sema', alan:'gdEnGucluHtml', tip:'html',
-    renderW: 700,
-    x:380, y:1760, scale:0.65, dpi:2, aktif:true
-  },
+  { id:'bina',       baslik:'🏢 Bina Görseli',            tip:'svg-fn',  x:20,  y:40,   scale:0.55, dpi:3, aktif:true },
+  { id:'kolon',      baslik:'🏛️ Kolon Şeması',            tip:'svg-fn',  x:20,  y:340,  scale:0.45, dpi:3, aktif:true },
+  { id:'pano',       baslik:'🗄️ Pano Görseli',             tip:'svg-fn',  x:20,  y:700,  scale:0.45, dpi:3, aktif:true },
+  { id:'tekhat',     baslik:'🔌 Tekhat Şeması',            tip:'svg-fn',  x:20,  y:900,  scale:0.45, dpi:3, aktif:true },
+  { id:'cetvel',     baslik:'📋 Yükleme Cetveli',          tip:'html-fn', renderW:1200, x:20, y:1050, scale:0.60, dpi:2, aktif:true },
+  { id:'tesisatguc', baslik:'⚡ Tesisat Güç Bilgileri',    tip:'html-fn', renderW:900,  x:20, y:1280, scale:0.60, dpi:2, aktif:true },
+  { id:'kofreolem',  baslik:'🔧 Kofre Ölçüm Değerleri',   tip:'html-fn', renderW:700,  x:20, y:1420, scale:0.60, dpi:2, aktif:true },
+  { id:'yapiguc',    baslik:'🏗️ Yapı Güç Bilgileri',       tip:'html-fn', renderW:1200, x:20, y:1580, scale:0.60, dpi:2, aktif:true },
+  { id:'gduzun',     baslik:'📉 GD Hesabı (En Uzun)',      tip:'html-fn', renderW:700,  x:20, y:1760, scale:0.65, dpi:2, aktif:true },
+  { id:'gdguclu',    baslik:'📉 GD Hesabı (En Güçlü)',     tip:'html-fn', renderW:700,  x:380,y:1760, scale:0.65, dpi:2, aktif:true },
 ];
 // ── DOM ──────────────────────────────────────────────
 const btnKontrol    = document.getElementById('btn-kontrol');
@@ -363,23 +308,21 @@ function svgToPng(svgString, pxW, pxH, dpiMul) {
 // ═══════════════════════════════════════════════════════
 function htmlToPng(htmlStr, renderW, dpiMul) {
   return new Promise(function(resolve, reject) {
-    dpiMul  = dpiMul  || 3;
+    dpiMul  = dpiMul  || 2;
     renderW = renderW || 1200;
 
-    // Sandbox ayarla
     sandbox.style.width      = renderW + 'px';
     sandbox.style.background = '#ffffff';
-
-    // HTML'i sandbox'a yerleştir
-    // Güvenli: outerHTML ya da innerHTML olabilir
-    // Eğer içerik bir element outerHTML'iyse direkt koy
     sandbox.innerHTML = htmlStr;
 
-    // Render edilecek element
     const el = sandbox.firstElementChild || sandbox;
 
-    // Stillerin yüklenmesini bekle
     setTimeout(function() {
+      // Gerçek boyutu ölç
+      const rect = el.getBoundingClientRect();
+      const realW = Math.ceil(rect.width)  || renderW;
+      const realH = Math.ceil(rect.height) || 400;
+
       window.html2canvas(el, {
         backgroundColor : '#ffffff',
         scale           : dpiMul,
@@ -387,7 +330,8 @@ function htmlToPng(htmlStr, renderW, dpiMul) {
         allowTaint      : true,
         logging         : false,
         windowWidth     : renderW,
-        // Ekran dışı sandbox için scrollX/Y
+        width           : realW,
+        height          : realH,
         scrollX         : 0,
         scrollY         : 0,
         x               : 0,
@@ -404,7 +348,7 @@ function htmlToPng(htmlStr, renderW, dpiMul) {
         sandbox.innerHTML = '';
         reject(e);
       });
-    }, 80); // kısa bekleme → layout tamamlanması için
+    }, 120);
   });
 }
 
@@ -432,11 +376,10 @@ btnKontrol.addEventListener('click', function() {
 
   const sema = loadLS(KEY_SEMA);
   const yapi = loadLS(KEY_YAPI);
-  const hatalar  = [];
-  const uyarilar = [];
+  const hatalar = [];
 
-  if (!sema) hatalar.push('proje_sema_v1 bulunamadı — Elektrik Şeması sekmesini açın');
-  if (!yapi) hatalar.push('proje_yapi_v1 bulunamadı — Kolon Hesaplama sekmesini açın');
+  if (!sema) hatalar.push('proje_sema_v1 bulunamadı — Elektrik Şeması sayfasını ziyaret edin');
+  if (!yapi) hatalar.push('proje_yapi_v1 bulunamadı — Kolon Hesaplama sayfasını ziyaret edin');
 
   if (hatalar.length) {
     gosterDurum('❌ ' + hatalar.join(' | '), 'hata');
@@ -444,13 +387,10 @@ btnKontrol.addEventListener('click', function() {
     return;
   }
 
-  // Hangi alanlar var, hangileri eksik?
-  VARSAYILAN_OGELERI.forEach(function(og) {
-    const kaynak = og.kaynak === 'sema' ? sema : yapi;
-    if (!kaynak || !kaynak[og.alan]) {
-      uyarilar.push(og.baslik);
-    }
-  });
+  // State alanlarının temel varlığını kontrol et
+  const uyarilar = [];
+  if (!yapi.floors || yapi.floors.length === 0) uyarilar.push('Bina katları');
+  if (!sema.guc) uyarilar.push('Elektrik şeması güç verileri');
 
   kontrolGecti = true;
   btnKontrol.classList.add('ok');
@@ -459,7 +399,7 @@ btnKontrol.addEventListener('click', function() {
   btnIndir.disabled  = false;
 
   if (uyarilar.length) {
-    gosterDurum('⚠️ Şu öğeler eksik/boş (PDF\'de atlanacak): ' + uyarilar.join(', '), 'info');
+    gosterDurum('⚠️ Şu veriler eksik/boş olabilir: ' + uyarilar.join(', '), 'info');
   } else {
     gosterDurum('✅ Tüm veriler mevcut. PDF oluşturulabilir.', 'tamam');
   }
@@ -488,12 +428,9 @@ async function pdfOlustur() {
   const { width: PW, height: PH } = page.getSize();
   console.log('PDF sayfa boyutu:', PW.toFixed(1), '×', PH.toFixed(1), 'pt');
 
-  // Aktif görevler
   const aktifOgeler = VARSAYILAN_OGELERI.filter(function(og) {
-    const ayar  = _ayarlar[og.id] || {};
-    const aktif = ayar.aktif != null ? ayar.aktif : og.aktif;
-    const kaynak= og.kaynak === 'sema' ? sema : yapi;
-    return aktif && kaynak && kaynak[og.alan];
+    const ayar = _ayarlar[og.id] || {};
+    return (ayar.aktif != null ? ayar.aktif : og.aktif);
   });
 
   const toplam = aktifOgeler.length;
@@ -506,27 +443,34 @@ async function pdfOlustur() {
     const ayar  = _ayarlar[og.id] || {};
     const scale = ayar.scale != null ? ayar.scale : og.scale;
     const posX  = ayar.x     != null ? ayar.x     : og.x;
-    const posY  = ayar.y     != null ? ayar.y     : og.y; // üstten aşağı (pt)
+    const posY  = ayar.y     != null ? ayar.y     : og.y;
     const dpi   = ayar.dpi   != null ? ayar.dpi   : og.dpi;
-
-    const kaynak = og.kaynak === 'sema' ? sema : yapi;
-    const veri   = kaynak[og.alan];
 
     gosterDurum('🖼️ [' + (i+1) + '/' + toplam + '] ' + og.baslik + ' işleniyor...', 'info');
 
     try {
       let result;
 
-      if (og.tip === 'svg') {
-        // SVG → PNG (dpiMul canvas kalite çarpanı)
-        result = await svgToPng(veri, og.pxW, og.pxH, dpi);
+      if (og.tip === 'svg-fn') {
+        let svgData;
+        if (og.id === 'bina')   svgData = buildBinaRaporSvg(yapi);
+        if (og.id === 'kolon')  svgData = buildKolonRaporSvg(yapi);
+        if (og.id === 'pano')   svgData = buildPanoRaporSvg(yapi);
+        if (og.id === 'tekhat') svgData = buildTekhatRaporSvg(sema);
+        if (!svgData || !svgData.svgString) { continue; }
+        result = await svgToPng(svgData.svgString, svgData.w, svgData.h, dpi);
       } else {
-        // HTML → PNG (html2canvas dpi = scale parametresi)
-        result = await htmlToPng(veri, og.renderW, dpi);
+        let html;
+        if (og.id === 'cetvel')     html = buildCetvelRaporHtml(sema);
+        if (og.id === 'tesisatguc') html = buildTesisatGucRaporHtml(sema);
+        if (og.id === 'kofreolem')  html = buildKofreOlcumRaporHtml(sema);
+        if (og.id === 'yapiguc')    html = buildYapiGucRaporHtml(sema);
+        if (og.id === 'gduzun')     html = buildGdRaporHtml(sema, 'uzun');
+        if (og.id === 'gdguclu')    html = buildGdRaporHtml(sema, 'guclu');
+        if (!html) { continue; }
+        result = await htmlToPng(html, og.renderW, dpi);
       }
 
-      // Canvas boyutu dpiMul ile büyütülmüş olduğundan
-      // asıl boyutu geri hesapla, sonra scale uygula
       const naturalW = result.w / result.dpiMul;
       const naturalH = result.h / result.dpiMul;
       const finalW   = naturalW * scale;
