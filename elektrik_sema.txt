@@ -1625,55 +1625,6 @@ function buildYapiGucTablosu() {
 }
 function saveState() {
   try {
-    // ── Tekhat SVG — hit-layer'lar temizlenerek serialize edilir
-    var svgEl = document.getElementById('katman_1');
-    var svgString = '';
-    if (svgEl) {
-      try {
-        // hit-layer rect'leri geçici olarak kaldır
-        var hitLayers = svgEl.querySelectorAll('.hit-layer');
-        var hitLayerParents = [];
-        hitLayers.forEach(function(el) {
-          hitLayerParents.push({ parent: el.parentNode, next: el.nextSibling, el: el });
-          el.parentNode.removeChild(el);
-        });
-        svgString = new XMLSerializer().serializeToString(svgEl);
-        // hit-layer'ları geri koy
-        hitLayerParents.forEach(function(item) {
-          if (item.next) {
-            item.parent.insertBefore(item.el, item.next);
-          } else {
-            item.parent.appendChild(item.el);
-          }
-        });
-      } catch(e) { console.warn('SVG serialize hatası:', e); }
-    }
-
-    // ── Gerilim düşümü tablolarının HTML snapshot'ı
-    var gdAlan = document.getElementById('gd-canli-alan');
-    var gdEnUzunHtml   = '';
-    var gdEnGucluHtml  = '';
-    if (gdAlan) {
-      // renderGD('en_uzun') ve renderGD('en_guclu') ayrı table elementleri üretir
-      // gd-canli-alan içindeki ilk ve ikinci table'ı alıyoruz
-      var gdTables = gdAlan.querySelectorAll('table');
-      if (gdTables[0]) gdEnUzunHtml  = gdTables[0].outerHTML;
-      if (gdTables[1]) gdEnGucluHtml = gdTables[1].outerHTML;
-    }
-
-        // ── Yükleme cetveli HTML snapshot'ı
-    var cetveliAlan = document.getElementById('cetveli-canli-alan');
-    var cetveliHtml = cetveliAlan ? cetveliAlan.innerHTML : '';
-
-    // ── Tesisat güç, kofre ölçüm, yapı güç tabloları (HTML builder fonksiyonlarından)
-    var tesisatGucHtml = buildTesisatGucTablosu();
-    var kofreOlcumHtml = buildKofreOlcumTablosu();
-    var yapiGucHtml    = buildYapiGucTablosu();
-    
-      var gucPanelHtml = '';
-    var gucPanel = document.getElementById('guc-bilgi-paneli');
-    if (gucPanel) gucPanelHtml = gucPanel.outerHTML;
-
     localStorage.setItem(LS_SEMA_KEY, JSON.stringify({
       // Metin verileri (mevcut)
       kofre:            getText('txt_kofre'),
@@ -1720,15 +1671,6 @@ function saveState() {
         eskiTalepManuel:  qs('guc-eski-talep')  && qs('guc-eski-talep').dataset.manuelDegistirildi  ? '1' : '',
         ilaveTalepManuel: qs('guc-ilave-talep') && qs('guc-ilave-talep').dataset.manuelDegistirildi ? '1' : ''
       },
-      // ── Rapor için görsel snapshot'lar
-      tekhatSvg:      svgString,       // Tekhat şeması (hit-layer'sız)
-      gdEnUzunHtml:   gdEnUzunHtml,    // GD hesabı en uzun tablo HTML
-      gdEnGucluHtml:  gdEnGucluHtml,   // GD hesabı en güçlü tablo HTML
-           cetveliHtml:    cetveliHtml,
-      tesisatGucHtml: tesisatGucHtml,
-      kofreOlcumHtml: kofreOlcumHtml,
-      yapiGucHtml:    yapiGucHtml,
-      gucPanelHtml:   gucPanelHtml,
       linyeler:       _linyeListesiOlustur()
     }));
   } catch(e) { console.warn('[saveState] error:', e); }
