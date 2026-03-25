@@ -113,6 +113,8 @@ const DOSYA_ADI  = 'Elektrik_Proje_Raporu.pdf';
 const KEY_SEMA   = 'proje_sema_v1';
 const KEY_YAPI   = 'proje_yapi_v1';
 const LS_AYAR    = 'rapor_ayarlar_v2';
+const PNG_CAPTURE_TIMEOUT_MS  = 20000; // Diğer sekmelerin PNG yakalaması için maks bekleme süresi (ms)
+const PNG_CAPTURE_POLL_MS     = 500;   // Kontrol aralığı (ms)
 
 // ── Her öğenin varsayılan ayarları ──────────────────────
 // kaynak: 'sema' veya 'yapi' (hangi localStorage key)
@@ -427,42 +429,76 @@ function pngBoyutAl(dataUrl) {
 // ═══════════════════════════════════════════════════════
 // KONTROL ET
 // ═══════════════════════════════════════════════════════
-btnKontrol.addEventListener('click', function() {
+btnKontrol.addEventListener('click', async function() {
   kontrolGecti = false;
   pdfBlob      = null;
+  btnKontrol.disabled    = true;
+  btnKontrol.textContent = '⏳ Görseller Hazırlanıyor...';
 
-  const sema = loadLS(KEY_SEMA);
-  const yapi = loadLS(KEY_YAPI);
-  const hatalar  = [];
-  const uyarilar = [];
+  try {
+    // Diğer sekmelere PNG yakalama talebi gönder (localStorage storage event ile)
+    const talepZamani = Date.now();
+    localStorage.setItem('sarj_gorsel_talep_v1', String(talepZamani));
+    gosterDurum('🔄 Görseller hazırlanıyor... (Kolon ve Şema sekmelerinin açık olduğundan emin olun)', 'info');
+    setProgress(5);
 
-  if (!sema) hatalar.push('proje_sema_v1 bulunamadı — Elektrik Şeması sekmesini açın');
-  if (!yapi) hatalar.push('proje_yapi_v1 bulunamadı — Kolon Hesaplama sekmesini açın');
+    // Her iki sekmenin yanıt bayraklarını bekle (maks PNG_CAPTURE_TIMEOUT_MS)
+    await new Promise(function(resolve) {
+      let elapsed = 0;
+      function kontrol() {
+        elapsed += PNG_CAPTURE_POLL_MS;
+        const yapiTs = parseInt(localStorage.getItem('sarj_gorsel_hazir_yapi_v1') || '0');
+        const semaTs = parseInt(localStorage.getItem('sarj_gorsel_hazir_sema_v1') || '0');
+        const yapiHazir = yapiTs >= talepZamani;
+        const semaHazir = semaTs >= talepZamani;
+        const hazirSayisi = (yapiHazir ? 1 : 0) + (semaHazir ? 1 : 0);
+        setProgress(5 + Math.min(85, (elapsed / PNG_CAPTURE_TIMEOUT_MS) * 85));
+        if (yapiHazir && semaHazir) { resolve(); return; }
+        if (elapsed >= PNG_CAPTURE_TIMEOUT_MS) { resolve(); return; }
+        gosterDurum('🔄 Görseller hazırlanıyor... (' + hazirSayisi + '/2 sekme tamamlandı)', 'info');
+        setTimeout(kontrol, PNG_CAPTURE_POLL_MS);
+      }
+      setTimeout(kontrol, PNG_CAPTURE_POLL_MS);
+    });
 
-  if (hatalar.length) {
-    gosterDurum('❌ ' + hatalar.join(' | '), 'hata');
-    btnOnizle.disabled = true; btnIndir.disabled = true;
-    return;
-  }
+    setProgress(100);
 
-  // Hangi alanlar var, hangileri eksik?
-  VARSAYILAN_OGELERI.forEach(function(og) {
-    const kaynak = og.kaynak === 'sema' ? sema : yapi;
-    if (!kaynak || !kaynak[og.alan]) {
-      uyarilar.push(og.baslik);
+    const sema = loadLS(KEY_SEMA);
+    const yapi = loadLS(KEY_YAPI);
+    const hatalar  = [];
+    const uyarilar = [];
+
+    if (!sema) hatalar.push('proje_sema_v1 bulunamadı — Elektrik Şeması sekmesini açın');
+    if (!yapi) hatalar.push('proje_yapi_v1 bulunamadı — Kolon Hesaplama sekmesini açın');
+
+    if (hatalar.length) {
+      gosterDurum('❌ ' + hatalar.join(' | '), 'hata');
+      btnOnizle.disabled = true; btnIndir.disabled = true;
+      return;
     }
-  });
 
-  kontrolGecti = true;
-  btnKontrol.classList.add('ok');
-  btnKontrol.textContent = '✅ Kontrol Tamam';
-  btnOnizle.disabled = false;
-  btnIndir.disabled  = false;
+    // Hangi alanlar var, hangileri eksik?
+    VARSAYILAN_OGELERI.forEach(function(og) {
+      const kaynak = og.kaynak === 'sema' ? sema : yapi;
+      if (!kaynak || !kaynak[og.alan]) {
+        uyarilar.push(og.baslik);
+      }
+    });
 
-  if (uyarilar.length) {
-    gosterDurum('⚠️ Şu öğeler eksik/boş (PDF\'de atlanacak): ' + uyarilar.join(', '), 'info');
-  } else {
-    gosterDurum('✅ Tüm veriler mevcut. PDF oluşturulabilir.', 'tamam');
+    kontrolGecti = true;
+    btnKontrol.classList.add('ok');
+    btnKontrol.textContent = '✅ Kontrol Tamam';
+    btnOnizle.disabled = false;
+    btnIndir.disabled  = false;
+
+    if (uyarilar.length) {
+      gosterDurum('⚠️ Şu öğeler eksik/boş (PDF\'de atlanacak): ' + uyarilar.join(', '), 'info');
+    } else {
+      gosterDurum('✅ Tüm veriler mevcut. PDF oluşturulabilir.', 'tamam');
+    }
+  } finally {
+    btnKontrol.disabled = false;
+    if (!kontrolGecti) btnKontrol.textContent = '✅ Kontrol Et';
   }
 });
 

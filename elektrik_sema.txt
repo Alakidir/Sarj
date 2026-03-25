@@ -1674,44 +1674,11 @@ function _htmlToPng(htmlStr) {
   });
 }
 
-async function saveState() {
+// Hafif kayıt — sadece state verisi, mevcut PNG'leri korur
+function saveState() {
   try {
-    // ── Tekhat PNG
-    var tekhatPng = '';
-    var svgEl = document.getElementById('katman_1');
-    if (svgEl) {
-      // hit-layer'ları geçici kaldır
-      var hitLayers = svgEl.querySelectorAll('.hit-layer');
-      var hitLayerParents = [];
-      hitLayers.forEach(function(el) {
-        hitLayerParents.push({ parent: el.parentNode, next: el.nextSibling, el: el });
-        el.parentNode.removeChild(el);
-      });
-      tekhatPng = await _elemToPng(svgEl);
-      hitLayerParents.forEach(function(item) {
-        if (item.next) { item.parent.insertBefore(item.el, item.next); }
-        else { item.parent.appendChild(item.el); }
-      });
-    }
-
-    // ── Yükleme cetveli PNG
-    var cetvelPng = '';
-    var cetveliAlan = document.getElementById('cetveli-canli-alan');
-    if (cetveliAlan) cetvelPng = await _elemToPng(cetveliAlan);
-
-    // ── Tesisat güç, kofre ölçüm, yapı güç tabloları PNG
-    var tesisatGucPng  = await _htmlToPng(buildTesisatGucTablosu());
-    var kofreOlcumPng  = await _htmlToPng(buildKofreOlcumTablosu());
-    var yapiGucPng     = await _htmlToPng(buildYapiGucTablosu());
-
-    // ── Gerilim düşümü tabloları PNG
-    var gdEnUzunPng  = '';
-    var gdEnGucluPng = '';
-    var gdEnUzunEl  = document.getElementById('gd-tablo-enuzun');
-    var gdEnGucluEl = document.getElementById('gd-tablo-enguclu');
-    if (gdEnUzunEl)  gdEnUzunPng  = await _elemToPng(gdEnUzunEl);
-    if (gdEnGucluEl) gdEnGucluPng = await _elemToPng(gdEnGucluEl);
-
+    var existing = {};
+    try { var raw = localStorage.getItem(LS_SEMA_KEY); if (raw) existing = JSON.parse(raw); } catch(e) {}
     localStorage.setItem(LS_SEMA_KEY, JSON.stringify({
       // Metin verileri (mevcut)
       kofre:            getText('txt_kofre'),
@@ -1758,17 +1725,70 @@ async function saveState() {
         eskiTalepManuel:  qs('guc-eski-talep')  && qs('guc-eski-talep').dataset.manuelDegistirildi  ? '1' : '',
         ilaveTalepManuel: qs('guc-ilave-talep') && qs('guc-ilave-talep').dataset.manuelDegistirildi ? '1' : ''
       },
-      // ── Rapor için görsel PNG'ler
-      tekhatPng:      tekhatPng,
-      cetvelPng:      cetvelPng,
-      tesisatGucPng:  tesisatGucPng,
-      kofreOlcumPng:  kofreOlcumPng,
-      yapiGucPng:     yapiGucPng,
-      gdEnUzunPng:    gdEnUzunPng,
-      gdEnGucluPng:   gdEnGucluPng,
-      linyeler:       _linyeListesiOlustur()
+      // Mevcut PNG'leri koru
+      tekhatPng:     existing.tekhatPng     || '',
+      cetvelPng:     existing.cetvelPng     || '',
+      tesisatGucPng: existing.tesisatGucPng || '',
+      kofreOlcumPng: existing.kofreOlcumPng || '',
+      yapiGucPng:    existing.yapiGucPng    || '',
+      gdEnUzunPng:   existing.gdEnUzunPng   || '',
+      gdEnGucluPng:  existing.gdEnGucluPng  || '',
+      linyeler:      _linyeListesiOlustur()
     }));
   } catch(e) { console.warn('[saveState] error:', e); }
+}
+
+// Ağır kayıt — DOM elementlerini html2canvas ile PNG olarak yakala
+// Sadece Rapor'un "Kontrol Et" tetiklemesiyle çağrılır
+async function savePngState() {
+  try {
+    // ── Tekhat PNG
+    var tekhatPng = '';
+    var svgEl = document.getElementById('katman_1');
+    if (svgEl) {
+      // hit-layer'ları geçici kaldır
+      var hitLayers = svgEl.querySelectorAll('.hit-layer');
+      var hitLayerParents = [];
+      hitLayers.forEach(function(el) {
+        hitLayerParents.push({ parent: el.parentNode, next: el.nextSibling, el: el });
+        el.parentNode.removeChild(el);
+      });
+      tekhatPng = await _elemToPng(svgEl);
+      hitLayerParents.forEach(function(item) {
+        if (item.next) { item.parent.insertBefore(item.el, item.next); }
+        else { item.parent.appendChild(item.el); }
+      });
+    }
+
+    // ── Yükleme cetveli PNG
+    var cetvelPng = '';
+    var cetveliAlan = document.getElementById('cetveli-canli-alan');
+    if (cetveliAlan) cetvelPng = await _elemToPng(cetveliAlan);
+
+    // ── Tesisat güç, kofre ölçüm, yapı güç tabloları PNG
+    var tesisatGucPng  = await _htmlToPng(buildTesisatGucTablosu());
+    var kofreOlcumPng  = await _htmlToPng(buildKofreOlcumTablosu());
+    var yapiGucPng     = await _htmlToPng(buildYapiGucTablosu());
+
+    // ── Gerilim düşümü tabloları PNG
+    var gdEnUzunPng  = '';
+    var gdEnGucluPng = '';
+    var gdEnUzunEl  = document.getElementById('gd-tablo-enuzun');
+    var gdEnGucluEl = document.getElementById('gd-tablo-enguclu');
+    if (gdEnUzunEl)  gdEnUzunPng  = await _elemToPng(gdEnUzunEl);
+    if (gdEnGucluEl) gdEnGucluPng = await _elemToPng(gdEnGucluEl);
+
+    var existing = {};
+    try { var raw = localStorage.getItem(LS_SEMA_KEY); if (raw) existing = JSON.parse(raw); } catch(e) {}
+    existing.tekhatPng     = tekhatPng;
+    existing.cetvelPng     = cetvelPng;
+    existing.tesisatGucPng = tesisatGucPng;
+    existing.kofreOlcumPng = kofreOlcumPng;
+    existing.yapiGucPng    = yapiGucPng;
+    existing.gdEnUzunPng   = gdEnUzunPng;
+    existing.gdEnGucluPng  = gdEnGucluPng;
+    localStorage.setItem(LS_SEMA_KEY, JSON.stringify(existing));
+  } catch(e) { console.warn('[savePngState] error:', e); }
 }
 
 function _linyeListesiOlustur() {
@@ -1875,7 +1895,17 @@ function restoreState() {
 }
 
 window.saveState    = saveState;
+window.savePngState = savePngState;
 window.restoreState = restoreState;
+
+// ── Rapor "Kontrol Et" butonu tetiklemesiyle PNG yakalama ──
+window.addEventListener('storage', function(e) {
+  if (e.key === 'sarj_gorsel_talep_v1') {
+    savePngState().then(function() {
+      localStorage.setItem('sarj_gorsel_hazir_sema_v1', String(Date.now()));
+    }).catch(function(err) { console.warn('[savePngState]', err); });
+  }
+});
 
 window.getSemaVerileri = function() {
   return {
@@ -2471,14 +2501,14 @@ window.kapatModal=function(){
   _eskiKapat2();
   setTimeout(gdTabloGuncelle,50);
   // GD tabloları render edildikten sonra saveState (gdEnUzun/gdEnGuclu dahil)
-  setTimeout(function(){ if(typeof saveState==='function') saveState().catch(function(){}); }, 120);
+  setTimeout(function(){ if(typeof saveState==='function') saveState(); }, 120);
 };
 
 document.addEventListener('DOMContentLoaded',function(){
   ['guc-eski-kurulu','guc-eski-talep','guc-ilave-kurulu','guc-ilave-talep','guc-imax','guc-yapi-eski-kg-puant'].forEach(function(id){
     var el=qs(id);if(el)el.addEventListener('input',function(){
       setTimeout(gdTabloGuncelle,100);
-      setTimeout(function(){ if(typeof saveState==='function') saveState().catch(function(){}); }, 200);
+      setTimeout(function(){ if(typeof saveState==='function') saveState(); }, 200);
     });
   });
   setTimeout(gdTabloGuncelle,200);
