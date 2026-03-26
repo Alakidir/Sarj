@@ -796,15 +796,20 @@ function _binaSvgOlustur() {
   function drawKofre(attachX, attachY) {
     var tx = attachX - 739.7, ty = attachY - 555.9;
     return '<g transform="translate(' + f2(tx) + ',' + f2(ty) + ')">'
-      + '<text transform="matrix(1 0 0 1 745.6688 596.2412)" class="st-text st-text-9">3x70+35 mm2 15m</text>'
-      + '<text transform="matrix(1 0 0 1 826.275 587.799)" class="st-text st-text-9">Y.S.Y.A </text>'
-      + '<text transform="matrix(1 0 0 1 829.608 614.3505)" class="st-text st-text-9">3x40A</text>'
-      + '<rect x="826.2" y="593.9" class="st-rect-thin" width="22.5" height="11.5"/>'
-      + '<line class="st-line-thin" x1="848.7" y1="593.9" x2="826.3" y2="605.4"/>'
-      + '<line class="st-line-thin" x1="848.8" y1="605.6" x2="826.3" y2="594.1"/>'
-      + '<polygon class="st-line-thin" points="859.3,599.6 850.1,594.3 850.1,605"/>'
-      + '<line class="st-line-thin" x1="826.3" y1="599.7" x2="709.7" y2="599.7"/>'
-      + '<line class="st-line-thin" x1="709.7" y1="555.9" x2="709.7" y2="599.8"/>'
+      + '<text transform="matrix(1 0 0 1 745.6688 596)" class="st-text st-text-9">3x70+35 mm2 15m</text>'
+    + '<text transform="matrix(1 0 0 1 826.275 587.799)" class="st-text st-text-9">Y.S.Y.A </text>'
+    + '<text transform="matrix(1 0 0 1 829.608 614.3505)" class="st-text st-text-9">3x40A</text>'
+
+    + '<rect x="826.2" y="593.9" class="st-rect-thin" width="22.5" height="11.5"/>'
+    + '<line class="st-line-thin" x1="848.7" y1="593.9" x2="826.3" y2="605.4"/>'
+    + '<line class="st-line-thin" x1="848.8" y1="605.6" x2="826.3" y2="594.1"/>'
+    
+    + '<polygon class="st-fill" points="859.3,599.6 850.1,594.3 850.1,605"/>'
+    
+    + '<line class="st-line-thin" x1="826.3" y1="602" x2="709.7" y2="602"/>'
+    + '<line class="st-line-thin" x1="826.3" y1="599" x2="712.7" y2="599"/>'
+    + '<line class="st-line-thin" x1="709.7" y1="556" x2="709.7" y2="602"/>'
+    + '<line class="st-line-thin" x1="712.7" y1="556" x2="712.7" y2="599"/>'
       + '</g>';
   }
 
