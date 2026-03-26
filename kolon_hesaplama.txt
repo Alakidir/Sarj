@@ -96,6 +96,10 @@
       <label>Yapı Kat Sayısı</label>
       <input type="number" id="katSayisi" value="3" min="1" max="30">
     </div>
+    <div class="info-row" id="istekBagimsizRow">
+      <label>İstek Bağımsız</label>
+      <select id="istekBagimsizSelect"></select>
+    </div>
     <hr class="info-divider">
     <div class="info-table-subtitle">Ana Dağıtım Panosu Bilgileri</div>
     <div class="info-row">
@@ -542,6 +546,7 @@ function _binaSvgOlustur() {
     renderSummary();
     hideValidationError();
     renderKolon();
+    buildIstekBagimsizSelect();
     scheduleSave();
   }
 
@@ -647,6 +652,42 @@ function _binaSvgOlustur() {
     }
   }
 
+  function buildIstekBagimsizSelect() {
+    var sel = $('istekBagimsizSelect');
+    sel.innerHTML = '';
+    if (state.asansor > 0) {
+      var optA = document.createElement('option');
+      optA.value = 'asansor'; optA.textContent = 'Asansör';
+      sel.appendChild(optA);
+    }
+    if (state.ortakAlan > 0) {
+      var optO = document.createElement('option');
+      optO.value = 'ortak'; optO.textContent = 'Ortak Alan';
+      sel.appendChild(optO);
+    }
+    for (var i = 1; i <= state.toplamBagimsiz; i++) {
+      var optB = document.createElement('option');
+      optB.value = 'bagimsiz_' + i;
+      optB.textContent = i + ' Nolu Bağımsız';
+      sel.appendChild(optB);
+    }
+    if (state.istekFloor === -1 && state.istekUnit !== null) {
+      sel.value = state.istekUnit < state.asansor ? 'asansor' : 'ortak';
+    } else if (state.istekFloor !== null && state.istekFloor >= 0 && state.istekUnit !== null) {
+      var globalN = 0;
+      var found = false;
+      for (var fi = 0; fi < state.floors.length && !found; fi++) {
+        for (var ui = 0; ui < state.floors[fi].units.length && !found; ui++) {
+          globalN++;
+          if (fi === state.istekFloor && ui === state.istekUnit) {
+            sel.value = 'bagimsiz_' + globalN;
+            found = true;
+          }
+        }
+      }
+    }
+  }
+
   function syncFromTotal() {
     state.totalTesisat = parseInt($('totalTesisat').value) || 3;
     state.asansor = parseInt($('asansor').value) || 0;
@@ -674,6 +715,37 @@ function _binaSvgOlustur() {
   $('ortakAlan').addEventListener('input', syncFromTotal);
   $('toplamBagimsiz').addEventListener('input', syncFromBagimsiz);
   $('katSayisi').addEventListener('input', syncFromTotal);
+  $('istekBagimsizSelect').addEventListener('change', function () {
+    var val = $('istekBagimsizSelect').value;
+    if (val === 'asansor') {
+      setIstekOrtak(-1, 0);
+    } else if (val === 'ortak') {
+      setIstekOrtak(-1, state.asansor);
+    } else if (val.indexOf('bagimsiz_') === 0) {
+      var n = parseInt(val.replace('bagimsiz_', ''));
+      var count = 0;
+      var done = false;
+      for (var fi = 0; fi < state.floors.length && !done; fi++) {
+        for (var ui = 0; ui < state.floors[fi].units.length && !done; ui++) {
+          count++;
+          if (count === n) {
+            if (state.istekFloor !== null && state.istekFloor >= 0 &&
+                state.istekUnit !== null &&
+                state.istekFloor < state.floors.length &&
+                state.istekUnit < state.floors[state.istekFloor].units.length) {
+              state.floors[state.istekFloor].units[state.istekUnit] = 'mevcut';
+            }
+            state.floors[fi].units[ui] = 'istek';
+            state.istekFloor = fi;
+            state.istekUnit = ui;
+            renderBuilding();
+            showToast('🔶 ' + n + ' Nolu Bağımsız İSTEK olarak işaretlendi.');
+            done = true;
+          }
+        }
+      }
+    }
+  });
   $('adpTipi').addEventListener('change', function () {
     adpTipiValue = $('adpTipi').value; scheduleSave(); renderKolon();
   });
