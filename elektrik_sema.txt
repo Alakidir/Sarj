@@ -519,8 +519,9 @@
         <line class="st0" x1="826.9" y1="211.9" x2="870.3" y2="211.9"/>
         <line class="st0" x1="826.6" y1="216.9" x2="870" y2="216.9"/>
         <text transform="matrix(1 0 0 1 832.6088 245.6172)" class="st2 st3 st11">kWh</text>
-        <text id="txt_sayac_tip" transform="matrix(1 0 0 1 838.6675 267.7288)" class="st2 st3 st9">3x10</text>
-        <text id="txt_sayac_trafo" transform="matrix(1 0 0 1 838.6675 277.7288)" class="st2 st3 st9"></text>
+        <text id="txt_sayac_tip" transform="matrix(1 0 0 1 828.6675 267.7288)" class="st2 st3 st9">3x10</text>
+        <text id="txt_sayac_trafo" transform="matrix(1 0 0 1 836.6675 277.7288)" class="st2 st3 st9"></text>
+        <text id="txt_sayac_olcum" transform="matrix(1 0 0 1 830.6675 287.7288)" class="st2 st3 st9"></text>
         <text transform="matrix(1 0 0 1 825.4962 185.4792)" class="st2 st3 st4">DAİRE 13</text>
       </g>
 
@@ -612,7 +613,7 @@
           <button type="button" data-value="TMŞ">TMŞ</button>
         </div>
         <div class="form-title">Kofre Sigorta Değeri</div>
-        <input id="kofre-deger" class="popup-select" type="number" placeholder="Örn: 80" />
+        <select id="kofre-deger" class="popup-select"></select>
       </div>
 
       <!-- KABLO PANELİ -->
@@ -655,12 +656,24 @@
         </div>
         <div class="form-title">Yük Gücü (W)</div>
         <input id="yuk-w" class="popup-select" type="number" placeholder="Toplam yük gücü (W)" />
+        <div id="yuk-cosq-wrapper" style="display:none;">
+          <div class="form-title">CosQ Değeri</div>
+          <input id="yuk-cosq" class="popup-select" type="number" step="0.01" min="0.1" max="1" placeholder="CosQ (örn: 0.8)" value="0.8" />
+        </div>
       </div>
 
       <!-- SİGORTA PANELİ -->
       <div class="p-panel" data-panel="sigorta" style="display:none;">
         <div class="modal-header-area" id="sigorta-modal-header" style="display:none;">
           <button type="button" class="kaldir-btn" id="btn-sigorta-kaldir" style="display:none;">Sigortayı Kaldır</button>
+        </div>
+        <!-- sadece sig_sayac_cikis açıldığında gösterilir -->
+        <div id="muhurlu-alan-wrapper" style="display:none;">
+          <div class="form-title">Mühürlü Alanda</div>
+          <div class="btn-group" id="muhurlu-alan-sec">
+            <button type="button" data-value="evet">Evet</button>
+            <button type="button" data-value="hayir">Hayır</button>
+          </div>
         </div>
         <div id="kesici-tip-wrapper" style="display:none;">
           <div class="form-title">Sigorta Tipi</div>
@@ -675,7 +688,7 @@
           <button type="button" data-value="3x">Trifaz</button>
         </div>
         <div class="form-title">Sigorta Akım Değeri</div>
-        <input id="sig-a" class="popup-select" type="number" placeholder="Amper (A)" />
+        <select id="sig-a" class="popup-select"></select>
       </div>
 
       <!-- SAYAÇ PANELİ -->
@@ -686,11 +699,25 @@
           <button type="button" data-value="Trifaze">Trifaze</button>
           <button type="button" data-value="X5">X5</button>
         </div>
-        <div class="form-title">Akım Trafo Oranı</div>
-        <div class="trafo-input-group">
-          <input id="sayac-trafo-deger" type="number" placeholder="Örn: 100" disabled />
-          <span class="trafo-sabit disabled" id="sayac-trafo-sabit">/5</span>
+        <div class="form-title">Ölçüm Özelliği</div>
+        <div class="btn-group" id="sayac-olcum-ozellik">
+          <button type="button" data-value="Aktif Sayaç">Aktif Sayaç</button>
+          <button type="button" data-value="Kombi Sayaç">Kombi Sayaç</button>
         </div>
+        <div class="form-title">Akım Trafo Oranı</div>
+        <select id="sayac-trafo-select" class="popup-select" disabled>
+          <option value="">-- Seçiniz --</option>
+          <option value="100/5">100/5</option>
+          <option value="150/5">150/5</option>
+          <option value="200/5">200/5</option>
+          <option value="250/5">250/5</option>
+          <option value="300/5">300/5</option>
+          <option value="400/5">400/5</option>
+          <option value="500/5">500/5</option>
+          <option value="600/5">600/5</option>
+          <option value="750/5">750/5</option>
+          <option value="1250/5">1250/5</option>
+        </select>
       </div>
 
       <!-- RÖLE PANELİ -->
@@ -706,7 +733,7 @@
           <button type="button" data-value="4x">Trifaz</button>
         </div>
         <div class="form-title">Röle Akım Değeri</div>
-        <input id="role-a" class="popup-select" type="number" placeholder="Amper (A)" />
+        <select id="role-a" class="popup-select"></select>
       </div>
 
       <!-- SİGORTA EKLE PANELİ -->
@@ -735,6 +762,9 @@ var LS_SEMA_KEY = 'proje_sema_v1';
 const KABLO_KESIT_LIST = ['1,5','2,5','4','6','10','16','25','35','50','70','120','150','180','240'];
 const KABLO_TIP_LIST   = ['NYY','NYM','TTR','NYFGBY','NYAF','N2XH','NYA','Alüminyum'];
 const SADECE_TEK_DAMAR = ['NYA','NYAF'];
+const K_OTOMAT_LIST    = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125];
+const TMS_LIST         = [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250, 320, 400, 500, 600, 630, 800];
+const YSYA_LIST        = [20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 600, 630];
 
 let modalConfig = {};
 let _puantProgrammatic = false;
@@ -752,6 +782,21 @@ function setVal(id, val) { const el = qs(id); if (el) el.value = val === 0 ? '' 
 function setValFloat(id, val) { const el = qs(id); if (el) el.value = val === 0 ? '' : parseFloat(val.toFixed(2)); }
 function normPanelName(name) { return String(name || '').trim().toLowerCase(); }
 function closePopup() { const p = qs('proje-popup'); if (p) p.style.display = 'none'; }
+
+function fillSelect(selectEl, list, currentValue) {
+  selectEl.innerHTML = '';
+  list.forEach(val => {
+    const opt = document.createElement('option');
+    opt.value = val;
+    opt.textContent = val + ' A';
+    selectEl.appendChild(opt);
+  });
+  if (list.includes(Number(currentValue))) {
+    selectEl.value = currentValue;
+  } else {
+    selectEl.value = list[0];
+  }
+}
 
 function showPanel(name) {
   document.querySelectorAll('#proje-popup .p-panel').forEach(p => {
@@ -902,14 +947,36 @@ function parseKofre(txt) {
 }
 
 function parseSayac(tipTxt, trafoTxt) {
-  const rawTip   = String(tipTxt  || '').trim();
-  const rawTrafo = String(trafoTxt || '').trim();
+  const rawTip    = String(tipTxt  || '').trim();
+  const rawTrafo  = String(trafoTxt || '').trim();
+  const ilkKelime = rawTip.split(' ')[0];
   let sayacTipi = 'Trifaze';
-  if (rawTip === '1x10')      sayacTipi = 'Monofaze';
-  else if (rawTip === '3x10') sayacTipi = 'Trifaze';
-  else if (rawTip === 'X5')   sayacTipi = 'X5';
-  const trafoOrani = rawTrafo && rawTrafo.includes('/5') ? rawTrafo.replace('/5', '').trim() : '';
-  return { sayac_tipi: sayacTipi, trafo_orani: trafoOrani, trafo_tam: trafoOrani ? trafoOrani + '/5' : '' };
+  if (ilkKelime === '1x10')      sayacTipi = 'Monofaze';
+  else if (ilkKelime === '3x10') sayacTipi = 'Trifaze';
+  else if (ilkKelime === 'X5')   sayacTipi = 'X5';
+
+  let trafoAkim   = 0;
+  let trafoCarpan = 0;
+  let trafoTam    = '';
+  if (rawTrafo && rawTrafo.includes('/')) {
+    const parts = rawTrafo.split('/');
+    trafoAkim   = Number(parts[0]) || 0;
+    trafoCarpan = Number(parts[1]) || 0;
+    trafoTam    = rawTrafo;
+  } else if (rawTrafo && /^\d+$/.test(rawTrafo)) {
+    // geriye uyumluluk: eski kayıtlar sadece sayı içeriyorsa "/5" paydası varsayılır
+    // (sistemde kullanılan tek standart akım trafo paydası 5'tir)
+    trafoAkim   = Number(rawTrafo) || 0;
+    trafoCarpan = 5;
+    trafoTam    = trafoAkim + '/5';
+  }
+  return {
+    sayac_tipi  : sayacTipi,
+    trafo_orani : trafoAkim,     // eski alan: sayısal pay (geriye uyumluluk)
+    trafo_tam   : trafoTam,      // "100/5" formatı
+    trafo_akim  : trafoAkim,     // 100
+    trafo_carpan: trafoCarpan    // 5
+  };
 }
 
 // ═══════════════════════════════════════════════════════
@@ -979,14 +1046,46 @@ function fillKabloSelects(mevcutTip, mevcutDamar, mevcutKesit) {
   guncelleKabloKesitListesi(mevcutKesit);
 }
 
-function guncelleTopraklamaKesitDurumu() {
-  const wrapper = qs('topraklama-kesit-wrapper');
-  const sel     = qs('kablo-topraklama-kesit');
+function hesaplaOtomatikTopraklamaKesit(kesitStr) {
+  const floatList = KABLO_KESIT_LIST.map(k => parseFloat(k.replace(',', '.')));
+  const S = parseFloat(String(kesitStr).replace(',', '.'));
+  if (isNaN(S)) return kesitStr;
+  if (S <= 16) return kesitStr;
+  if (S <= 35) return '16';
+  const yari = S / 2;
+  let sonuc = floatList[floatList.length - 1];
+  for (const f of floatList) {
+    if (f >= yari) { sonuc = f; break; }
+  }
+  return String(sonuc).replace('.', ',');
+}
+
+function guncelleTopraklamaKesitDurumu(autoCalc) {
+  const wrapper    = qs('topraklama-kesit-wrapper');
+  const sel        = qs('kablo-topraklama-kesit');
   if (!wrapper || !sel) return;
   const aktifDamar = document.querySelector('#kablo-damar button.active');
-  const pasif = aktifDamar?.getAttribute('data-value') === '5x';
-  wrapper.style.display = pasif ? 'none' : '';
-  if (!pasif && (!sel.value || sel.value === '')) sel.value = qs('kablo-kesit')?.value || '2,5';
+  const damar      = aktifDamar?.getAttribute('data-value') || '3x';
+  const kesitVal   = qs('kablo-kesit')?.value || '2,5';
+
+  wrapper.style.display = '';
+  if (damar === '1x') {
+    sel.disabled = true;
+    if (Array.from(sel.options).find(o => o.value === kesitVal)) sel.value = kesitVal;
+  } else if (damar === '5x') {
+    sel.disabled = true;
+    const otomatik = hesaplaOtomatikTopraklamaKesit(kesitVal);
+    if (Array.from(sel.options).find(o => o.value === otomatik)) sel.value = otomatik;
+  } else if (damar === '2x' || damar === '4x') {
+    sel.disabled = false;
+    if (autoCalc && !sel.dataset.userOverride) {
+      const otomatik = hesaplaOtomatikTopraklamaKesit(kesitVal);
+      if (Array.from(sel.options).find(o => o.value === otomatik)) sel.value = otomatik;
+    }
+  } else {
+    sel.disabled = false;
+    sel.value = 'yok';
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1003,11 +1102,13 @@ function guncelleKolonSigortaGorsel(kesiciTipi) {
 function kolonSigortaKaldir() {
   setVisible('sig_kolon', false); setVisible('tms_kolon', false); setVisible('cizgi_kolon', true);
   closePopup();
+  saveState();
 }
 
 function kolonSigortaEkle() {
   setVisible('cizgi_kolon', false); setVisible('tms_kolon', true); setVisible('sig_kolon', false);
   closePopup();
+  saveState();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1015,6 +1116,7 @@ function kolonSigortaEkle() {
 // ═══════════════════════════════════════════════════════
 function sayacCikisSigortaKaldir() {
   setVisible('sig_sayac_cikis', false); setVisible('cizgi_sayaccikis', true); closePopup();
+  saveState();
 }
 
 function sayacCikisSigortaEkle() {
@@ -1022,6 +1124,7 @@ function sayacCikisSigortaEkle() {
   const txt = qs('txt_sig_sayac_cikis');
   if (txt && !txt.textContent.trim()) txt.textContent = '1x16 A';
   closePopup();
+  saveState();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1030,14 +1133,25 @@ function sayacCikisSigortaEkle() {
 function guncelleSayacTrafoAlani() {
   const aktifBtn   = document.querySelector('#sayac-tip button.active');
   const seciliTip  = aktifBtn?.getAttribute('data-value') || '';
-  const trafoInput = qs('sayac-trafo-deger');
-  const trafoSabit = qs('sayac-trafo-sabit');
+  const trafoSel   = qs('sayac-trafo-select');
   if (seciliTip === 'X5') {
-    if (trafoInput) trafoInput.disabled = false;
-    if (trafoSabit) trafoSabit.classList.remove('disabled');
+    if (trafoSel) trafoSel.disabled = false;
   } else {
-    if (trafoInput) { trafoInput.disabled = true; trafoInput.value = ''; }
-    if (trafoSabit) trafoSabit.classList.add('disabled');
+    if (trafoSel) { trafoSel.disabled = true; trafoSel.value = ''; }
+  }
+  const olcumBtnler = document.querySelectorAll('#sayac-olcum-ozellik button');
+  const olcumGrup   = document.getElementById('sayac-olcum-ozellik');
+  if (seciliTip === 'Monofaze') {
+    const aktifOlcum = document.querySelector('#sayac-olcum-ozellik button.active');
+    if (aktifOlcum && olcumGrup) olcumGrup.dataset.savedOlcum = aktifOlcum.getAttribute('data-value');
+    olcumBtnler.forEach(b => { b.disabled = true; b.classList.remove('active'); });
+  } else {
+    olcumBtnler.forEach(b => { b.disabled = false; });
+    const aktifOlcum = document.querySelector('#sayac-olcum-ozellik button.active');
+    if (!aktifOlcum) {
+      const geriYukle = olcumGrup?.dataset.savedOlcum || 'Aktif Sayaç';
+      setActiveButton('#sayac-olcum-ozellik', geriYukle);
+    }
   }
 }
 
@@ -1109,7 +1223,7 @@ function setupYukPanelTipi() {
   yukTipGroup.querySelectorAll('button[data-gecici="1"]').forEach(btn => btn.remove());
   const mevcutButtons = yukTipGroup.querySelectorAll('button');
   if (modalConfig?.yukTipiSabit) {
-    mevcutButtons.forEach(btn => { btn.style.display = 'none'; });
+    mevcutButtons.forEach(btn => { btn.style.display = 'none'; btn.classList.remove('active'); });
     const sarjBtn = document.createElement('button');
     sarjBtn.type = 'button';
     sarjBtn.setAttribute('data-value', 'Şarj İst.');
@@ -1141,7 +1255,10 @@ function acModal(evt, options, cfg) {
 
   if (panel === 'kofre') {
     const kofreData = parseKofre(getText('txt_kofre'));
-    if (kofreData) { setActiveButton('#kofre-tip', kofreData.tip); qs('kofre-deger').value = kofreData.deger; }
+    const kofreTip  = kofreData?.tip || 'YSYA';
+    if (kofreData) setActiveButton('#kofre-tip', kofreTip);
+    const kofreList = kofreTip === 'TMŞ' ? TMS_LIST : YSYA_LIST;
+    fillSelect(qs('kofre-deger'), kofreList, kofreData?.deger || kofreList[0]);
   } else if (panel === 'kablo') {
     const targetId = cfg?.targetId;
     let kabloData = { damar:'3x', damar_sayi:3, kesit:'2,5', tip:'NYY', metraj:10, toprak_kesit:'' };
@@ -1149,13 +1266,25 @@ function acModal(evt, options, cfg) {
     fillKabloSelects(kabloData.tip, kabloData.damar, kabloData.kesit);
     qs('kablo-m').value = kabloData.metraj;
     const topraklamaSel = qs('kablo-topraklama-kesit');
-    if (topraklamaSel) topraklamaSel.value = kabloData.toprak_kesit || 'yok';
-    guncelleTopraklamaKesitDurumu();
+    if (topraklamaSel) {
+      topraklamaSel.dataset.userOverride = '';
+      topraklamaSel.value = kabloData.toprak_kesit || 'yok';
+    }
+    const needsAutoCalc = (kabloData.damar === '2x' || kabloData.damar === '4x') && !kabloData.toprak_kesit;
+    guncelleTopraklamaKesitDurumu(needsAutoCalc);
     setupKolonSigortaEkleButton();
   } else if (panel === 'yuk') {
     temizleGeciciYukButonlari();
     setupYukPanelTipi();
     const targetId = cfg?.targetId;
+    const cosqWrapper = qs('yuk-cosq-wrapper');
+    if (cfg?.yukTipiSabit) {
+      if (cosqWrapper) cosqWrapper.style.display = 'block';
+      const cosqInput = qs('yuk-cosq');
+      if (cosqInput) cosqInput.value = (window._istekCosQ != null) ? window._istekCosQ : 0.8;
+    } else {
+      if (cosqWrapper) cosqWrapper.style.display = 'none';
+    }
     if (targetId) {
       const yukData = parseYuk(getText(targetId));
       if (yukData) {
@@ -1165,35 +1294,70 @@ function acModal(evt, options, cfg) {
       }
     }
   } else if (panel === 'sigorta') {
-    const targetId   = cfg?.targetId;
-    const isKolonSig = !!cfg?.isKolonSig;
-    const kesiciWrapper = qs('kesici-tip-wrapper');
+    const targetId          = cfg?.targetId;
+    const isKolonSig        = !!cfg?.isKolonSig;
+    const isSayacCikisSig   = !!cfg?.isSayacCikisSig;
+    const kesiciWrapper     = qs('kesici-tip-wrapper');
     if (kesiciWrapper) kesiciWrapper.style.display = isKolonSig ? 'block' : 'none';
+    const muhurluWrapper    = qs('muhurlu-alan-wrapper');
+    if (muhurluWrapper) {
+      if (isSayacCikisSig) {
+        muhurluWrapper.style.display = 'block';
+        const savedMuhurlu = window._muhurluAlanda || 'evet';
+        setActiveButton('#muhurlu-alan-sec', savedMuhurlu);
+      } else {
+        muhurluWrapper.style.display = 'none';
+      }
+    }
+    let sigAkim = '';
     if (targetId) {
       const sigData = parseSigorta(getText(targetId));
-      if (sigData) { setActiveButton('#sig-faz', sigData.faz); qs('sig-a').value = sigData.akim; }
+      if (sigData) { setActiveButton('#sig-faz', sigData.faz); sigAkim = sigData.akim; }
       if (isKolonSig) {
         const kesiciTipi = isDomVisible('tms_kolon') ? 'TMŞ' : 'K.Otomat';
         setActiveButton('#kesici-tip', kesiciTipi);
       }
     }
+    const kesiciTipiAktif = isKolonSig
+      ? (document.querySelector('#kesici-tip button.active')?.getAttribute('data-value') || 'K.Otomat')
+      : 'K.Otomat';
+    const sigList = (isKolonSig && kesiciTipiAktif === 'TMŞ') ? TMS_LIST : K_OTOMAT_LIST;
+    fillSelect(qs('sig-a'), sigList, sigAkim);
     setupSigortaKaldirButton();
   } else if (panel === 'sayac') {
     const sayacData = parseSayac(getText('txt_sayac_tip'), getText('txt_sayac_trafo'));
     if (sayacData) {
       setActiveButton('#sayac-tip', sayacData.sayac_tipi);
-      const trafoInput = qs('sayac-trafo-deger');
-      if (trafoInput) trafoInput.value = sayacData.trafo_orani || '';
+      const trafoSel = qs('sayac-trafo-select');
+      if (trafoSel) {
+        if (sayacData.sayac_tipi === 'X5') {
+          trafoSel.disabled = false;
+          let trafoVal = '';
+          if (sayacData.trafo_tam && String(sayacData.trafo_tam).includes('/')) {
+            trafoVal = String(sayacData.trafo_tam);
+          } else if (sayacData.trafo_orani && /^\d+$/.test(String(sayacData.trafo_orani))) {
+            trafoVal = String(sayacData.trafo_orani) + '/5';
+          }
+          trafoSel.value = trafoVal;
+        } else {
+          trafoSel.disabled = true;
+          trafoSel.value = '';
+        }
+      }
     }
     guncelleSayacTrafoAlani();
+    const tipTamMetin  = getText('txt_sayac_tip').trim();
+    const olcumKelime  = tipTamMetin.split(' ')[1] || '';
+    if (olcumKelime === 'Kombi')  setActiveButton('#sayac-olcum-ozellik', 'Kombi Sayaç');
+    else if (olcumKelime === 'Aktif') setActiveButton('#sayac-olcum-ozellik', 'Aktif Sayaç');
   } else if (panel === 'role') {
     const targets  = cfg?.targets || {};
     const roleData = parseRole(getText(targets.roleA), getText(targets.roleB));
     if (roleData) {
       setActiveButton('#role-ma',  roleData.tip);
       setActiveButton('#role-faz', roleData.faz);
-      qs('role-a').value = roleData.akim;
     }
+    fillSelect(qs('role-a'), K_OTOMAT_LIST, roleData?.akim || K_OTOMAT_LIST[0]);
   }
 
   const popup = qs('proje-popup');
@@ -1220,7 +1384,7 @@ function kapatModal() {
     const wrapper = qs('topraklama-kesit-wrapper');
     const topSel  = qs('kablo-topraklama-kesit');
     let toprak = '';
-    if (wrapper && wrapper.style.display !== 'none' && topSel?.value && topSel.value !== 'yok') toprak = topSel.value;
+    if (wrapper && wrapper.style.display !== 'none' && damar !== '5x' && topSel?.value && topSel.value !== 'yok') toprak = topSel.value;
     const kesitText = toprak ? `${kesit}+${toprak}` : kesit;
     syncText(targetId, `${damar}${kesitText} mm2 ${tip} ${metraj}m`);
   } else if (panel === 'yuk' && targetId) {
@@ -1229,6 +1393,10 @@ function kapatModal() {
     const w    = Number(qs('yuk-w')?.value || 0);
     syncText(targetId, `${tip} - ${faz} - ${w}W`);
     temizleGeciciYukButonlari();
+    if (modalConfig?.yukTipiSabit) {
+      const cosqInput = qs('yuk-cosq');
+      if (cosqInput) window._istekCosQ = Number(cosqInput.value) || 0.8;
+    }
     if (targetId === 'txt_yuk_istek') {
       const ilaveInput = qs('guc-ilave-kurulu');
       if (ilaveInput) { ilaveInput.value = w; gucHesapla(); }
@@ -1236,9 +1404,14 @@ function kapatModal() {
   } else if (panel === 'sigorta' && targetId) {
     const faz        = document.querySelector('#sig-faz button.active')?.getAttribute('data-value') || '1x';
     const a          = qs('sig-a')?.value || '0';
-    const isKolonSig = !!modalConfig?.isKolonSig;
+    const isKolonSig        = !!modalConfig?.isKolonSig;
+    const isSayacCikisSig   = !!modalConfig?.isSayacCikisSig;
     let kesiciTipi   = 'K.Otomat';
     if (isKolonSig) kesiciTipi = document.querySelector('#kesici-tip button.active')?.getAttribute('data-value') || 'K.Otomat';
+    if (isSayacCikisSig) {
+      const muhurluBtn = document.querySelector('#muhurlu-alan-sec button.active');
+      window._muhurluAlanda = muhurluBtn ? muhurluBtn.getAttribute('data-value') : 'evet';
+    }
     if (isKolonSig) {
       if (kesiciTipi === 'TMŞ') { syncText('txt_tms_kolon', `TMŞ ${faz}${a} A`); guncelleKolonSigortaGorsel('TMŞ'); }
       else { syncText('txt_sig_kolon', `${faz}${a} A`); guncelleKolonSigortaGorsel('K.Otomat'); }
@@ -1247,17 +1420,26 @@ function kapatModal() {
     }
   } else if (panel === 'sayac') {
     const seciliTip  = document.querySelector('#sayac-tip button.active')?.getAttribute('data-value') || 'Trifaze';
-    const trafoInput = qs('sayac-trafo-deger');
-    const trafoVal   = trafoInput?.value?.trim() || '';
+    const trafoSel   = qs('sayac-trafo-select');
+    const trafoVal   = trafoSel?.value?.trim() || '';
     if (seciliTip === 'X5' && !trafoVal) {
-      if (trafoInput) { trafoInput.style.border = '2px solid red'; trafoInput.focus(); } return;
+      if (trafoSel) { trafoSel.style.border = '2px solid red'; trafoSel.focus(); } return;
     }
-    if (trafoInput) trafoInput.style.border = '';
+    if (trafoSel) trafoSel.style.border = '';
     let tipText = '3x10';
     if (seciliTip === 'Monofaze') tipText = '1x10';
     else if (seciliTip === 'X5')  tipText = 'X5';
-    syncText('txt_sayac_tip', tipText);
-    syncText('txt_sayac_trafo', seciliTip === 'X5' && trafoVal ? trafoVal + '/5' : '');
+    const olcumBtn   = document.querySelector('#sayac-olcum-ozellik button.active');
+    const olcumDeger = olcumBtn ? olcumBtn.getAttribute('data-value') : '';
+    let olcumKisalt  = '';
+    if (seciliTip !== 'Monofaze') {
+      if (olcumDeger === 'Kombi Sayaç') olcumKisalt = 'Kombi';
+      else if (olcumDeger === 'Aktif Sayaç') olcumKisalt = 'Aktif';
+    }
+    const tipSatir = olcumKisalt ? tipText + ' ' + olcumKisalt : tipText;
+    syncText('txt_sayac_tip',   tipSatir);
+    syncText('txt_sayac_trafo', seciliTip === 'X5' && trafoVal ? trafoVal : '');
+    syncText('txt_sayac_olcum', '');
   } else if (panel === 'role' && modalConfig?.targets) {
     const roleAId = modalConfig.targets.roleA;
     const roleBId = modalConfig.targets.roleB;
@@ -1302,12 +1484,26 @@ document.addEventListener('DOMContentLoaded', () => {
       if (btn.disabled) return;
       document.querySelectorAll('#kablo-damar button').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      const topraklamaSel = qs('kablo-topraklama-kesit');
+      if (topraklamaSel) topraklamaSel.dataset.userOverride = '';
       setTimeout(() => {
         const mevcutKesit = qs('kablo-kesit')?.value;
         guncelleKabloKesitListesi(mevcutKesit);
-        guncelleTopraklamaKesitDurumu();
+        guncelleTopraklamaKesitDurumu(true);
       }, 10);
     });
+  });
+
+  qs('kablo-kesit')?.addEventListener('change', () => {
+    const aktifDamar = document.querySelector('#kablo-damar button.active');
+    const damar = aktifDamar?.getAttribute('data-value') || '3x';
+    if (damar === '2x' || damar === '4x') guncelleTopraklamaKesitDurumu(true);
+    else if (damar === '1x') guncelleTopraklamaKesitDurumu(false);
+  });
+
+  qs('kablo-topraklama-kesit')?.addEventListener('change', () => {
+    const sel = qs('kablo-topraklama-kesit');
+    if (sel && !sel.disabled) sel.dataset.userOverride = '1';
   });
 
   qs('kablo-tip')?.addEventListener('change', () => {
@@ -1315,6 +1511,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const aktifDamar  = document.querySelector('#kablo-damar button.active');
     const mevcutDamar = aktifDamar?.getAttribute('data-value') || '3x';
     const mevcutKesit = qs('kablo-kesit')?.value;
+    const topraklamaSel = qs('kablo-topraklama-kesit');
+    if (topraklamaSel) topraklamaSel.dataset.userOverride = '';
     guncelleDamarButonlari(seciliTip, mevcutDamar);
     guncelleKabloKesitListesi(mevcutKesit);
   });
@@ -1327,15 +1525,44 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  document.querySelectorAll('#kesici-tip button').forEach(btn => {
+  document.querySelectorAll('#sayac-olcum-ozellik button').forEach(btn => {
     btn.addEventListener('click', () => {
+      if (btn.disabled) return;
       btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
     });
   });
 
+  document.querySelectorAll('#kesici-tip button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const tipDeger = btn.getAttribute('data-value');
+      const sigSel   = qs('sig-a');
+      if (sigSel) {
+        const mevcutDeger = sigSel.value;
+        const yeniList    = tipDeger === 'TMŞ' ? TMS_LIST : K_OTOMAT_LIST;
+        fillSelect(sigSel, yeniList, mevcutDeger);
+      }
+    });
+  });
+
+  document.querySelectorAll('#kofre-tip button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const tipDeger   = btn.getAttribute('data-value');
+      const kofreSel   = qs('kofre-deger');
+      if (kofreSel) {
+        const mevcutDeger = kofreSel.value;
+        const yeniList    = tipDeger === 'TMŞ' ? TMS_LIST : YSYA_LIST;
+        fillSelect(kofreSel, yeniList, mevcutDeger);
+      }
+    });
+  });
+
   document.querySelectorAll(
-    '#yuk-tip button, #yuk-faz button, #sig-faz button, #kofre-tip button, #role-ma button, #role-faz button'
+    '#yuk-tip button, #yuk-faz button, #sig-faz button, #role-ma button, #role-faz button, #muhurlu-alan-sec button'
   ).forEach(btn => {
     btn.addEventListener('click', () => {
       btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
@@ -1631,6 +1858,7 @@ function saveState() {
       kolonKablo:       getText('txt_kolon'),
       sayacTip:         getText('txt_sayac_tip'),
       sayacTrafo:       getText('txt_sayac_trafo'),
+      sayacOlcumOzellik: getText('txt_sayac_olcum'),
       sigSayacGiris:    getText('txt_sig_sayac_giris'),
       roleSayacGirisA:  getText('txt_role_sayac_giris_a'),
       roleSayacGirisB:  getText('txt_role_sayac_giris_b'),
@@ -1654,6 +1882,7 @@ function saveState() {
       dtMevcutTG:       getText('txt_dt_mevcut_tg'),
       sigKolonText:     getText('txt_sig_kolon'),
       tmsKolonText:     getText('txt_tms_kolon'),
+      kolonSigortaTip:  isDomVisible('tms_kolon') ? 'TMŞ' : isDomVisible('sig_kolon') ? 'K.Otomat' : 'Yok',
       visibility: {
         sigKolonVisible:        isDomVisible('sig_kolon'),
         tmsKolonVisible:        isDomVisible('tms_kolon'),
@@ -1671,9 +1900,16 @@ function saveState() {
         eskiTalepManuel:  qs('guc-eski-talep')  && qs('guc-eski-talep').dataset.manuelDegistirildi  ? '1' : '',
         ilaveTalepManuel: qs('guc-ilave-talep') && qs('guc-ilave-talep').dataset.manuelDegistirildi ? '1' : ''
       },
-      linyeler:       _linyeListesiOlustur()
+      linyeler:       _linyeListesiOlustur(),
+      istekCosQ:      window._istekCosQ,
+      muhurluAlanda:  window._muhurluAlanda || 'evet',
+      gdEnUzun:     (typeof window.getGDData === 'function') ? window.getGDData('en_uzun')  : null,
+      gdEnGuclu:    (typeof window.getGDData === 'function') ? window.getGDData('en_guclu') : null,
+      gdEnUzunHtml: (typeof window.renderGD  === 'function') ? window.renderGD('en_uzun')   : null,
+      gdEnGucluHtml:(typeof window.renderGD  === 'function') ? window.renderGD('en_guclu')  : null
     }));
   } catch(e) { console.warn('[saveState] error:', e); }
+  window.dispatchEvent(new CustomEvent('semaGuncellendi'));
 }
 
 function _linyeListesiOlustur() {
@@ -1719,6 +1955,7 @@ function restoreState() {
       'txt_kolon':              data.kolonKablo,
       'txt_sayac_tip':          data.sayacTip,
       'txt_sayac_trafo':        data.sayacTrafo,
+      'txt_sayac_olcum':        data.sayacOlcumOzellik,
       'txt_sig_sayac_giris':    data.sigSayacGiris,
       'txt_role_sayac_giris_a': data.roleSayacGirisA,
       'txt_role_sayac_giris_b': data.roleSayacGirisB,
@@ -1775,6 +2012,8 @@ function restoreState() {
         if (typeof gdTabloGuncelle === 'function') gdTabloGuncelle();
       }, 100);
     }
+    if (data.istekCosQ != null) window._istekCosQ = data.istekCosQ;
+    if (data.muhurluAlanda != null) window._muhurluAlanda = data.muhurluAlanda;
     return true;
   } catch(e) { console.warn('[restoreState] error:', e); return false; }
 }
@@ -1788,6 +2027,7 @@ window.getSemaVerileri = function() {
     kolonKablo:        getText('txt_kolon'),
     sayacTip:          getText('txt_sayac_tip'),
     sayacTrafo:        getText('txt_sayac_trafo'),
+    sayacOlcumOzellik: getText('txt_sayac_olcum'),
     kolonSigortaTip:   isDomVisible('tms_kolon') ? 'TMŞ' : isDomVisible('sig_kolon') ? 'K.Otomat' : 'Yok',
     kolonSigortaMetin: getText('txt_tms_kolon') || getText('txt_sig_kolon'),
     sigSayacGiris:     getText('txt_sig_sayac_giris'),
@@ -2156,15 +2396,17 @@ function _pY(txt){
 
 function collectGDData(tip){
   var kolK=kabloP(_pK(getText('txt_kolon')),0.8);
-  var dtR,yR,yRaw,dG;
+  var dtR,yR,yRaw,dG,yukCosQ;
   if(tip==='en_uzun'){
     dtR=_pK(getText('txt_linye_dt_mevcut'));yR=_pK(getText('txt_linye_yuk_mevcut'));
     yRaw=_pY(getText('txt_yuk_mevcut'));dG=numVal('guc-eski-talep');
+    yukCosQ=0.8;
   }else{
     dtR=_pK(getText('txt_linye_dt_istek'));yR=_pK(getText('txt_linye_yuk_istek'));
     yRaw=_pY(getText('txt_yuk_istek'));dG=numVal('guc-ilave-talep');
+    yukCosQ=window._istekCosQ||0.8;
   }
-  return{kolonK:kolK,dtK:kabloP(dtR,0.8),yukK:kabloP(yR,0.99),yukPar:yukP(yRaw),
+  return{kolonK:kolK,dtK:kabloP(dtR,0.8),yukK:kabloP(yR,yukCosQ),yukPar:yukP(yRaw),
     toplamGuc:numVal('guc-yapi-yeni-tg'),dtGuc:dG,tip:tip};
 }
 
@@ -2391,6 +2633,18 @@ document.addEventListener('DOMContentLoaded',function(){
 
 window.gdTabloGuncelle=gdTabloGuncelle;
 window.collectGDData=collectGDData;
+window.renderGD=renderGD;
+window.getGDData=function(tip){
+  var d=collectGDData(tip);
+  var s=hesapla(d);
+  if(!s)return null;
+  var a6v=(d.kolonK&&d.kolonK.kablo_ah_u)?d.kolonK.kablo_ah_u:1;
+  var F1=fn(d.toplamGuc/a6v,2)+' A';
+  var n1=akimNot(s.ah.I1,d.kolonK);
+  var n2=akimNot(s.ah.I2,d.dtK);
+  var n3=akimNot(s.ah.I3,d.yukK);
+  return{et:s.gd.et,etf:s.gd.etf,ok:s.gd.ok,ah:s.ah,F1:F1,n1:n1,n2:n2,n3:n3};
+};
 
 })();
 </script>
