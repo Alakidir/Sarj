@@ -1901,7 +1901,7 @@ function saveState() {
         ilaveTalepManuel: qs('guc-ilave-talep') && qs('guc-ilave-talep').dataset.manuelDegistirildi ? '1' : ''
       },
       linyeler:       _linyeListesiOlustur(),
-      istekCosQ:      window._istekCosQ,
+      istekCosQ:      (function(){ var el=qs('yuk-cosq'); return el ? (parseFloat(el.value)||0.8) : 0.8; })(),
       muhurluAlanda:  window._muhurluAlanda || 'evet',
       gdEnUzun:     (typeof window.getGDData === 'function') ? window.getGDData('en_uzun')  : null,
       gdEnGuclu:    (typeof window.getGDData === 'function') ? window.getGDData('en_guclu') : null,
@@ -2012,7 +2012,11 @@ function restoreState() {
         if (typeof gdTabloGuncelle === 'function') gdTabloGuncelle();
       }, 100);
     }
-    if (data.istekCosQ != null) window._istekCosQ = data.istekCosQ;
+    if (data.istekCosQ != null) {
+      window._istekCosQ = data.istekCosQ;
+      var cosqEl = qs('yuk-cosq');
+      if (cosqEl) cosqEl.value = data.istekCosQ;
+    }
     if (data.muhurluAlanda != null) window._muhurluAlanda = data.muhurluAlanda;
     return true;
   } catch(e) { console.warn('[restoreState] error:', e); return false; }
